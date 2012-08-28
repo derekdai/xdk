@@ -19,3 +19,9 @@ target_link_libraries( simple-window-keypress-draw ${X11_LIBRARIES}  ${GLIB_LIBR
 
 add_executable( simple-draw-with-color simple-draw-with-color )
 target_link_libraries( simple-draw-with-color ${X11_LIBRARIES}  ${GLIB_LIBRARIES} )
+
+add_library( xdk xdk )
+target_link_libraries( xdk ${X11_LIBRARIES}  ${GLIB_LIBRARIES} )
+
+add_executable( xdk-simple-window xdk-simple-window )
+target_link_libraries( xdk-simple-window xdk ${X11_LIBRARIES} ${GLIB_LIBRARIES} )
