@@ -19,6 +19,16 @@ int main(int * argc, char * args[])
 		xdk_screen_get_width(screen),
 		xdk_screen_get_height(screen),
 		xdk_screen_get_default_depth(screen));
+		
+	XdkWindow * win = xdk_window_new();
+	xdk_window_set_position(win, 100, 100);
+	xdk_window_set_size(win, 1280, 720);
+	xdk_window_realize_simple(win);
+	xdk_window_map(win);
+	
+	xdk_display_flush(display);
+	
+	g_usleep(3 * 1000 * 1000);
 	
 	return 0;
 }
