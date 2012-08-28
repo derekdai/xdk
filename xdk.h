@@ -7,9 +7,9 @@
 
 G_BEGIN_DECLS
 
-#define XDK_CASE(o, c, x)		((c *) o)
-#define XDK_BASE(o)				(XDK_CASE(o, XdkBase, XDK_TYPE_BASE))
-#define XDK_DISPLAY(o)			(XDK_CASE(o, XdkDisplay, XDK_TYPE_DISPLAY))
+#define XDK_CAST(o, c, x)		((c *) o)
+#define XDK_BASE(o)				(XDK_CAST(o, XdkBase, XDK_TYPE_BASE))
+#define XDK_DISPLAY(o)			(XDK_CAST(o, XdkDisplay, XDK_TYPE_DISPLAY))
 
 typedef gboolean (* XdkInitFunc)(gpointer base);
 
@@ -42,7 +42,17 @@ void xdk_base_unref(gpointer base);
 
 XdkDisplay * xdk_display_get_default();
 
+const gchar * xdk_display_get_name(XdkDisplay * self);
+
+gint xdk_display_get_n_screens(XdkDisplay * self);
+
 XdkScreen * xdk_display_get_default_screen(XdkDisplay * self);
+
+gint xdk_screen_get_number(XdkScreen * self);
+
+gint xdk_screen_get_width(XdkScreen * self);
+
+gint xdk_screen_get_height(XdkScreen * self);
 
 G_END_DECLS
 

@@ -22,7 +22,15 @@ struct _XdkDisplay
 {
 	XdkBase parent;
 	
-	Display * connection;
+	gchar * name;
+	
+	Display * x_display;
+	
+	gint n_screens;
+	
+	gint default_screen;
+	
+	XdkScreen ** screens;
 };
 
 struct _XdkScreen
@@ -31,7 +39,9 @@ struct _XdkScreen
 	
 	XdkDisplay display;
 	
-	int id;
+	gint screen_number;
+	
+	Screen * x_screen;
 };
 
 static XdkInitFunc xdk_type_get_init_func(XdkType type);
@@ -40,6 +50,8 @@ static XdkType xdk_type_get_parent(XdkType type);
 
 static gboolean xdk_display_init(gpointer base);
 static void xdk_display_destroy(gpointer base);
+
+static void xdk_screen_set_x_screen(XdkScreen * screen, Screen * x_screen);
 
 static const XdkTypeInfo type_infos[XDK_TYPE_MAX] = {
 	{ XDK_TYPE_INVALID, "XdkInvalid", NULL, NULL, 0 },
@@ -167,11 +179,35 @@ gboolean xdk_init(int * argc, char ** args[])
 static gboolean xdk_display_init(gpointer base)
 {
 	g_return_val_if_fail(base, FALSE);
-	
-	XdkDisplay * self = XDK_DISPLAY(base);
-	self->connection = XOpenDisplay(NULL);
 
-	return NULL != self->connection;
+	gboolean result = FALSE;
+	XdkDisplay * self = XDK_DISPLAY(base);
+	self->x_display = XOpenDisplay(NULL);
+	if(! self->x_display) {
+		goto end;
+	}
+	
+	self->name = XDisplayString(self->x_display);
+	self->default_screen = XDefaultScreen(self->x_display);
+	self->n_screens = XScreenCount(self->x_display);
+	self->screens = g_malloc0(sizeof(XdkScreen *) * self->n_screens);
+	
+	int i;
+	for(i = 0; i < self->n_screens; i ++) {
+		XdkScreen * screen = xdk_base_new(XDK_TYPE_SCREEN);
+		if(! screen) {
+			goto end;
+		}
+		xdk_screen_set_x_screen(
+			screen,
+			XScreenOfDisplay(self->x_display, i));
+		self->screens[i] = screen;
+	}
+	
+	result = TRUE;
+	
+end:
+	return result;
 }
 
 static void xdk_display_destroy(gpointer base)
@@ -179,8 +215,17 @@ static void xdk_display_destroy(gpointer base)
 	g_return_if_fail(base);
 	
 	XdkDisplay * self = XDK_DISPLAY(base);
-	if(self->connection) {
-		XCloseDisplay(self->connection);
+	
+	int i;
+	for(i = 0; i < self->n_screens; i ++) {
+		if(self->screens[i]) {
+			xdk_base_unref(self->screens[i]);
+		}
+	}
+	g_free(self->screens);
+	
+	if(self->x_display) {
+		XCloseDisplay(self->x_display);
 	}
 }
 
@@ -191,4 +236,57 @@ XdkDisplay * xdk_display_get_default()
 	}
 	
 	return default_display;
+}
+
+const gchar * xdk_display_get_name(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return self->name;
+}
+
+gint xdk_display_get_n_screens(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, 0);
+	
+	return self->n_screens;
+}
+
+XdkScreen * xdk_display_get_default_screen(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, 0);
+	
+	return self->screens[self->default_screen];
+}
+
+static void xdk_screen_set_x_screen(XdkScreen * self, Screen * x_screen)
+{
+	g_return_if_fail(self);
+	g_return_if_fail(x_screen);
+	
+	self->x_screen = x_screen;
+}
+
+gint xdk_screen_get_number(XdkScreen * self)
+{
+	g_return_val_if_fail(self, -1);
+	g_return_val_if_fail(self->x_screen, -1);
+	
+	return XScreenNumberOfScreen(self->x_screen);
+}
+
+gint xdk_screen_get_width(XdkScreen * self)
+{
+	g_return_val_if_fail(self, 0);
+	g_return_val_if_fail(self->x_screen, 0);
+	
+	return XWidthOfScreen(self->x_screen);
+}
+
+gint xdk_screen_get_height(XdkScreen * self)
+{
+	g_return_val_if_fail(self, 0);
+	g_return_val_if_fail(self->x_screen, 0);
+	
+	return HeightOfScreen(self->x_screen);
 }
