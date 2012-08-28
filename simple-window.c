@@ -1,3 +1,5 @@
+// See http://user.xmission.com/~georgeps/documentation/tutorials/Xlib_Beginner.html
+
 #include <X11/Xlib.h>
 #include <glib.h>
 
