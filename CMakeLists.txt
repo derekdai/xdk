@@ -11,6 +11,8 @@ include_directories( ${X11_INCLUDE_DIRS} ${GLIB_INCLUDE_DIRS} )
 
 link_directories( ${X11_LIBRARY_DIRS} ${GLIB_LIBRARY_DIRS} )
 
-add_executable( simple-window-keypress-draw simple-window-keypress-draw )
+add_executable( simple-window simple-window )
+target_link_libraries( simple-window ${X11_LIBRARIES}  ${GLIB_LIBRARIES} )
 
+add_executable( simple-window-keypress-draw simple-window-keypress-draw )
 target_link_libraries( simple-window-keypress-draw ${X11_LIBRARIES}  ${GLIB_LIBRARIES} )
