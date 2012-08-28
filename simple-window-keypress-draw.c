@@ -1,7 +1,8 @@
 #include <X11/Xlib.h>
 #include <glib.h>
+#include <X11/keysym.h>
 
-#define MESSAGE ("Hello World")
+#define MESSAGE ("Press Q to quit")
 
 int main(int argc, char * argv)
 {
@@ -41,7 +42,11 @@ int main(int argc, char * argv)
 					MESSAGE, sizeof(MESSAGE) - 1);
 				break;
 			case KeyPress:
-				goto end;
+				if(XLookupKeysym(& event.xkey, 0) == XK_q ||
+						XLookupKeysym(& event.xkey, 0) == XK_Q) {
+					goto end;
+				}
+				break;
 		}
 	}
 	
