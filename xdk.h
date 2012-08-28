@@ -23,12 +23,21 @@ typedef struct _XdkDisplay XdkDisplay;
 
 typedef struct _XdkScreen XdkScreen;
 
+typedef struct _XdkGc XdkGc;
+
+typedef struct _XdkVisual XdkVisual;
+
+typedef struct _XdkWindow XdkWindow;
+
 enum _XdkType
 {
 	XDK_TYPE_INVALID,
 	XDK_TYPE_BASE,
 	XDK_TYPE_DISPLAY,
 	XDK_TYPE_SCREEN,
+	XDK_TYPE_WINDOW,
+	XDK_TYPE_GC,
+	XDK_TYPE_VSIUAL,
 	XDK_TYPE_MAX
 };
 
@@ -42,6 +51,10 @@ void xdk_base_unref(gpointer base);
 
 XdkDisplay * xdk_display_get_default();
 
+const char * xdk_display_get_vendor(XdkDisplay * self);
+
+gint xdk_display_get_release(XdkDisplay * self);
+
 const gchar * xdk_display_get_name(XdkDisplay * self);
 
 gint xdk_display_get_n_screens(XdkDisplay * self);
@@ -53,6 +66,18 @@ gint xdk_screen_get_number(XdkScreen * self);
 gint xdk_screen_get_width(XdkScreen * self);
 
 gint xdk_screen_get_height(XdkScreen * self);
+
+gint xdk_screen_get_default_depth(XdkScreen * self);
+
+XdkGc * xdk_screen_get_default_gc(XdkScreen * self);
+
+XdkVisual * xdk_screen_get_default_visual(XdkScreen * self);
+
+XdkDisplay * xdk_screen_get_display(XdkScreen * self);
+
+glong xdk_screen_get_event_mask(XdkScreen * self);
+
+XdkWindow * xdk_screen_get_root_window(XdkScreen * self);
 
 G_END_DECLS
 

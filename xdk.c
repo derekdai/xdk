@@ -37,11 +37,30 @@ struct _XdkScreen
 {
 	XdkBase parent;
 	
-	XdkDisplay display;
-	
-	gint screen_number;
+	XdkDisplay * display;
 	
 	Screen * x_screen;
+	
+	XdkVisual * default_visual;
+	
+	XdkGc * default_gc;
+	
+	XdkWindow * root;
+};
+
+struct _XdkWindow
+{
+	XdkBase parent;
+};
+
+struct _XdkGc
+{
+	XdkBase parent;
+};
+
+struct _XdkVisual
+{
+	XdkBase parent;
 };
 
 static XdkInitFunc xdk_type_get_init_func(XdkType type);
@@ -58,6 +77,9 @@ static const XdkTypeInfo type_infos[XDK_TYPE_MAX] = {
 	{ XDK_TYPE_INVALID, "XdkBase", NULL, NULL, 0 },
 	{ XDK_TYPE_BASE, "XdkDisplay", xdk_display_init, xdk_display_destroy, sizeof(XdkDisplay) },
 	{ XDK_TYPE_BASE, "XdkScreen", NULL, NULL, sizeof(XdkScreen) },
+	{ XDK_TYPE_BASE, "XdkWindow", NULL, NULL, sizeof(XdkWindow) },
+	{ XDK_TYPE_BASE, "XdkGc", NULL, NULL, sizeof(XdkGc) },
+	{ XDK_TYPE_BASE, "XdkVisual", NULL, NULL, sizeof(XdkVisual) },
 };
 
 static XdkDisplay * default_display = NULL;
@@ -259,6 +281,20 @@ XdkScreen * xdk_display_get_default_screen(XdkDisplay * self)
 	return self->screens[self->default_screen];
 }
 
+const char * xdk_display_get_vendor(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return XServerVendor(self->x_display);
+}
+
+gint xdk_display_get_release(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, 0);
+	
+	return XVendorRelease(self->x_display);
+}
+
 static void xdk_screen_set_x_screen(XdkScreen * self, Screen * x_screen)
 {
 	g_return_if_fail(self);
@@ -289,4 +325,47 @@ gint xdk_screen_get_height(XdkScreen * self)
 	g_return_val_if_fail(self->x_screen, 0);
 	
 	return HeightOfScreen(self->x_screen);
+}
+
+gint xdk_screen_get_default_depth(XdkScreen * self)
+{
+	g_return_val_if_fail(self, 0);
+	g_return_val_if_fail(self->x_screen, 0);
+	
+	return XDefaultDepthOfScreen(self->x_screen);
+}
+
+XdkGc * xdk_screen_get_default_gc(XdkScreen * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return self->default_gc;
+}
+
+XdkVisual * xdk_screen_get_default_visual(XdkScreen * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return self->default_visual;
+}
+
+XdkDisplay * xdk_screen_get_display(XdkScreen * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return self->display;
+}
+
+glong xdk_screen_get_event_mask(XdkScreen * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return XEventMaskOfScreen(self->x_screen);
+}
+
+XdkWindow * xdk_screen_get_root_window(XdkScreen * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return self->root;
 }
