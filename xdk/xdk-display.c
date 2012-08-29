@@ -131,3 +131,11 @@ XdkWindow * xdk_get_default_root_window()
 	
 	return xdk_screen_get_root_window(screen);
 }
+
+const XdkTypeInfo xdk_type_display = {
+	XDK_TYPE_BASE,
+	"XdkDisplay",
+	xdk_display_init,
+	xdk_display_destroy,
+	sizeof(XdkDisplay)
+};
