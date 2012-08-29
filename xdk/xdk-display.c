@@ -1,8 +1,23 @@
-#include "xdk.h"
+#include "xdk-display.h"
 #include "xdk-base-private.h"
-#include "xdk-display-private.h"
+#include "xdk-screen.h"
 
 static XdkDisplay * default_display = NULL;
+
+struct _XdkDisplay
+{
+	XdkBase parent;
+	
+	Display * peer;
+	
+	gchar * name;
+	
+	gint n_screens;
+	
+	gint default_screen;
+	
+	XdkScreen ** screens;
+};
 
 gboolean xdk_display_init_once()
 {

@@ -1,17 +1,26 @@
 #ifndef __XDK_WINDOW_PRIVATE_H_
 #define __XDK_WINDOW_PRIVATE_H_
 
+#include <glib.h>
+#include "xdk-display.h"
+#include "xdk-screen.h"
+#include "xdk-base-private.h"
+
+G_BEGIN_DECLS
+
+typedef struct _XdkVisual XdkVisual;
+
 struct _XdkWindow
 {
 	XdkBase parent;
+	
+	Window peer;
 	
 	XdkDisplay * display;
 	
 	XdkScreen * screen;
 	
 	XdkWindow * parent_window;
-	
-	Window peer;
 	
 	gint x;
 	
@@ -20,8 +29,6 @@ struct _XdkWindow
 	guint width;
 	
 	guint height;
-	
-	gint depth;
 	
 	XdkVisual * visual;
 	
@@ -35,5 +42,7 @@ struct _XdkWindow
 };
 
 gboolean xdk_window_init(gpointer base);
+
+G_END_DECLS
 
 #endif /* __XDK_WINDOW_PRIVATE_H_ */

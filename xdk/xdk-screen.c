@@ -1,6 +1,24 @@
-#include "xdk.h"
+#include "xdk-display.h"
+#include "xdk-window.h"
+#include "xdk-visual.h"
+#include "xdk-gc.h"
 #include "xdk-base-private.h"
 #include "xdk-screen-private.h"
+
+struct _XdkScreen
+{
+	XdkBase parent;
+	
+	Screen * peer;
+	
+	XdkDisplay * display;
+	
+	XdkVisual * default_visual;
+	
+	XdkGc * default_gc;
+	
+	XdkWindow * root;
+};
 
 void xdk_screen_set_peer(XdkScreen * self, Screen * peer)
 {

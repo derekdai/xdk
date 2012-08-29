@@ -1,4 +1,5 @@
-#include "xdk.h"
+#include "xdk-display.h"
+#include "xdk-screen.h"
 #include "xdk-base-private.h"
 #include "xdk-window-private.h"
 

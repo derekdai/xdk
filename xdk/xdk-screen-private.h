@@ -1,21 +1,13 @@
-#ifndef __XDK_SCREEN_H_
-#define __XDK_SCREEN_H_
+#ifndef __XDK_SCREEN_PRIVATE_H_
+#define __XDK_SCREEN_PRIVATE_H_
 
-struct _XdkScreen
-{
-	XdkBase parent;
-	
-	XdkDisplay * display;
-	
-	Screen * peer;
-	
-	XdkVisual * default_visual;
-	
-	XdkGc * default_gc;
-	
-	XdkWindow * root;
-};
+#include <glib.h>
+#include "xdk-screen.h"
+
+G_BEGIN_DECLS
 
 void xdk_screen_set_peer(XdkScreen * screen, Screen * peer);
 
-#endif /* __XDK_SCREEN_H_ */
+G_END_DECLS
+
+#endif /* __XDK_SCREEN_PRIVATE_H_ */

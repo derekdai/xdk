@@ -2,7 +2,6 @@
 #define __XDK_TYPE_REGISTRY_H_
 
 #include <glib.h>
-#include "xdk-type.h"
 
 G_BEGIN_DECLS
 

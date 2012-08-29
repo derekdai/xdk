@@ -1,57 +1,11 @@
 #include <stdlib.h>
-#include "xdk.h"
+#include "xdk-type.h"
+#include "xdk-base.h"
 #include "xdk-base-private.h"
-#include "xdk-display-private.h"
-#include "xdk-screen-private.h"
-#include "xdk-window-private.h"
 
-extern const XdkTypeInfo * xdk_type_infos[XDK_TYPE_MAX];
-
-struct _XdkGc
-{
-	XdkBase parent;
-};
-
-struct _XdkVisual
-{
-	XdkBase parent;
-};
-
-static XdkInitFunc xdk_type_get_init_func(XdkType type);
-
-static XdkDestroyFunc xdk_type_get_destroy_func(XdkType type);
-
-static XdkType xdk_type_get_parent(XdkType type);
+extern const XdkTypeInfo const * xdk_type_infos[XDK_TYPE_MAX];
 
 static gboolean gdk_initialized = FALSE;
-
-static const char * xdk_type_get_name(XdkType type)
-{
-	g_return_val_if_fail(type >= XDK_TYPE_INVALID && type < XDK_TYPE_MAX, NULL);
-	
-	return xdk_type_infos[type]->name;
-}
-
-static XdkInitFunc xdk_type_get_init_func(XdkType type)
-{
-	g_return_val_if_fail(type >= XDK_TYPE_INVALID && type < XDK_TYPE_MAX, NULL);
-	
-	return xdk_type_infos[type]->init_func;
-}
-
-static XdkDestroyFunc xdk_type_get_destroy_func(XdkType type)
-{
-	g_return_val_if_fail(type >= XDK_TYPE_INVALID && type < XDK_TYPE_MAX, NULL);
-	
-	return xdk_type_infos[type]->destroy_func;
-}
-
-static XdkType xdk_type_get_parent(XdkType type)
-{
-	g_return_val_if_fail(type >= XDK_TYPE_INVALID && type < XDK_TYPE_MAX, XDK_TYPE_INVALID);
-	
-	return xdk_type_infos[type]->parent;
-}
 
 static gboolean _xdk_base_init(gpointer base, XdkType type)
 {
@@ -146,23 +100,6 @@ const XdkTypeInfo xdk_type_invalid = {
 const XdkTypeInfo xdk_type_base = {
 	XDK_TYPE_INVALID,
 	"XdkBase",
-	NULL,
-	NULL,
-	0
-};
-
-const XdkTypeInfo xdk_type_gc = {
-	XDK_TYPE_BASE,
-	"XdkGc",
-	NULL,
-	NULL,
-	0
-};
-
-
-const XdkTypeInfo xdk_type_visual = {
-	XDK_TYPE_BASE,
-	"XdkVisual",
 	NULL,
 	NULL,
 	0

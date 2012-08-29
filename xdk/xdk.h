@@ -7,25 +7,8 @@
 #define __XDK_H_
 
 #include <glib.h>
-#include <X11/Xlib.h>
-#include <X11/keysym.h>
 
 G_BEGIN_DECLS
-
-#define XDK_GC(o)				(XDK_CAST(o, XdkGc, XDK_TYPE_GC))
-#define XDK_VISUAL(o)			(XDK_CAST(o, XdkVisual, XDK_TYPE_VISUAL))
-
-typedef struct _XdkBase XdkBase;
-
-typedef struct _XdkDisplay XdkDisplay;
-
-typedef struct _XdkScreen XdkScreen;
-
-typedef struct _XdkWindow XdkWindow;
-
-typedef struct _XdkGc XdkGc;
-
-typedef struct _XdkVisual XdkVisual;
 
 #include "xdk-type.h"
 #include "xdk-type-registry.h"
@@ -33,6 +16,8 @@ typedef struct _XdkVisual XdkVisual;
 #include "xdk-display.h"
 #include "xdk-screen.h"
 #include "xdk-window.h"
+#include "xdk-gc.h"
+#include "xdk-visual.h"
 
 gboolean xdk_init(int * argc, char ** args[]);
 
