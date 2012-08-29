@@ -130,7 +130,7 @@ void xdk_window_hide(XdkWindow * self)
 const XdkTypeInfo xdk_type_window = {
 	XDK_TYPE_BASE,
 	"XdkWindow",
+	sizeof(XdkWindow),
 	xdk_window_init,
-	NULL,
-	sizeof(XdkWindow)
+	NULL
 };

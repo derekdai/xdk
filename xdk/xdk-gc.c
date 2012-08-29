@@ -9,8 +9,7 @@ struct _XdkGc
 const XdkTypeInfo xdk_type_gc = {
 	XDK_TYPE_BASE,
 	"XdkGc",
+	0,
 	NULL,
-	NULL,
-	0
+	NULL
 };
-

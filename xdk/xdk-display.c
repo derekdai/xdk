@@ -150,7 +150,7 @@ XdkWindow * xdk_get_default_root_window()
 const XdkTypeInfo xdk_type_display = {
 	XDK_TYPE_BASE,
 	"XdkDisplay",
+	sizeof(XdkDisplay),
 	xdk_display_init,
-	xdk_display_destroy,
-	sizeof(XdkDisplay)
+	xdk_display_destroy
 };

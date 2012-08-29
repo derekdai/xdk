@@ -20,9 +20,9 @@ struct _XdkTypeInfo
 {
 	guint parent;
 	const char * name;
+	gsize size;
 	XdkInitFunc init_func;
 	XdkDestroyFunc destroy_func;
-	gsize size;
 };
 
 const char * xdk_type_get_name(XdkType type);

@@ -92,15 +92,15 @@ gboolean xdk_init(int * argc, char ** args[])
 const XdkTypeInfo xdk_type_invalid = {
 	XDK_TYPE_INVALID,
 	"XdkInvalid",
+	0,
 	NULL,
-	NULL,
-	0
+	NULL
 };
 
 const XdkTypeInfo xdk_type_base = {
 	XDK_TYPE_INVALID,
 	"XdkBase",
+	0,
 	NULL,
-	NULL,
-	0
+	NULL
 };

@@ -110,7 +110,7 @@ XdkWindow * xdk_screen_get_root_window(XdkScreen * self)
 const XdkTypeInfo xdk_type_screen = {
 	XDK_TYPE_BASE,
 	"XdkScreen",
+	sizeof(XdkScreen),
 	NULL,
-	NULL,
-	sizeof(XdkScreen)
+	NULL
 };

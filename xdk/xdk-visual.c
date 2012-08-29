@@ -9,7 +9,7 @@ struct _XdkVisual
 const XdkTypeInfo xdk_type_visual = {
 	XDK_TYPE_BASE,
 	"XdkVisual",
+	0,
 	NULL,
-	NULL,
-	0
+	NULL
 };
