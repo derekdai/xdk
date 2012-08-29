@@ -19,9 +19,13 @@ typedef void (* XdkDestroyFunc)(gpointer base);
 struct _XdkTypeInfo
 {
 	guint parent;
+	
 	const char * name;
+	
 	gsize size;
+	
 	XdkInitFunc init_func;
+	
 	XdkDestroyFunc destroy_func;
 };
 

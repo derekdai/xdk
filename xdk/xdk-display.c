@@ -84,7 +84,7 @@ void xdk_display_destroy(gpointer base)
 XdkDisplay * xdk_display_get_default()
 {
 	if(! default_display) {
-		g_warning("Xdk not initialized yet");
+		g_error("Call xdk_init() to initialize first");
 	}
 	
 	return default_display;
@@ -118,8 +118,9 @@ XdkScreen * xdk_display_get_default_screen(XdkDisplay * self)
 	return self->screens[self->default_screen];
 }
 
-void xdk_display_flush(XdkDisplay * self)
+void xdk_display_flush()
 {
+	XdkDisplay * self = xdk_display_get_default();
 	g_return_if_fail(self);
 	
 	XFlush(self->peer);
@@ -145,6 +146,14 @@ XdkWindow * xdk_get_default_root_window()
 	XdkScreen * screen = xdk_display_get_default_screen(display);
 	
 	return xdk_screen_get_root_window(screen);
+}
+
+void xdk_next_event(XEvent * event)
+{
+	XdkDisplay * display = xdk_display_get_default();
+	g_return_if_fail(display);
+	
+	XNextEvent(display->peer, event);
 }
 
 const XdkTypeInfo xdk_type_display = {

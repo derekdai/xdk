@@ -28,7 +28,9 @@ gint xdk_display_get_n_screens(XdkDisplay * self);
 
 XdkScreen * xdk_display_get_default_screen(XdkDisplay * self);
 
-void xdk_display_flush(XdkDisplay * self);
+void xdk_next_event(XEvent * event);
+
+void xdk_display_flush();
 
 XdkWindow * xdk_get_default_root_window();
 

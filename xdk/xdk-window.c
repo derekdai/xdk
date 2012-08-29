@@ -12,6 +12,8 @@ gboolean xdk_window_init(gpointer base)
 	self->screen = xdk_display_get_default_screen(self->display);
 	self->peer = None;
 	self->background_color = 0xffffffff;
+	self->width = 1;
+	self->height = 1;
 	
 	return TRUE;
 }
@@ -65,6 +67,8 @@ void xdk_window_realize_simple(XdkWindow * self)
 		0, 0,
 		self->background_color);
 	self->own_peer = TRUE;
+	
+	xdk_display_flush();
 }
 
 void xdk_window_get_position(XdkWindow * self, int * x, int * y)
@@ -115,12 +119,21 @@ void xdk_window_map(XdkWindow * self)
 	
 	if(! self->mapped) {
 		XMapWindow(xdk_display_get_peer(self->display), self->peer);
+		self->mapped = TRUE;
 	}
 }
 
 void xdk_window_show(XdkWindow * self)
 {
 	g_return_if_fail(self);
+	
+	if(None == self->peer) {
+		xdk_window_realize_simple(self);
+	}
+	
+	if(! self->mapped) {
+		xdk_window_map(self);
+	}
 }
 
 void xdk_window_hide(XdkWindow * self)
