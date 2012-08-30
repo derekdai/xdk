@@ -2,10 +2,11 @@
 #include "xdk-type.h"
 #include "xdk-base.h"
 #include "xdk-base-private.h"
+#include "xdk-display.h"
 
 extern const XdkTypeInfo const * xdk_type_infos[XDK_TYPE_MAX];
 
-static gboolean gdk_initialized = FALSE;
+static gboolean quited = FALSE;
 
 static gboolean _xdk_base_init(gpointer base, XdkType type)
 {
@@ -27,9 +28,9 @@ static void _xdk_base_free(gpointer base, XdkType type)
 	
 	XdkType curr_type = type;
 	while(curr_type != XDK_TYPE_INVALID) {
-		XdkDestroyFunc destroy_func = xdk_type_get_destroy_func(curr_type);
-		if(destroy_func) {
-			destroy_func(base);
+		XdkFinalizeFunc finalize_func = xdk_type_get_finalize_func(curr_type);
+		if(finalize_func) {
+			finalize_func(base);
 		}
 		curr_type = xdk_type_get_parent(curr_type);
 	}
@@ -87,6 +88,20 @@ void xdk_base_unref(gpointer base)
 gboolean xdk_init(int * argc, char ** args[])
 {
 	return xdk_display_init_once();
+}
+
+void xdk_main()
+{
+	XdkDisplay * display = xdk_display_get_default();
+	
+	while(! quited && xdk_display_next_event(display)) {
+		xdk_display_dispatch_event(display);
+	}
+}
+
+void xdk_main_quit()
+{
+	quited = TRUE;
 }
 
 const XdkTypeInfo xdk_type_invalid = {

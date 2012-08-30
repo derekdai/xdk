@@ -28,9 +28,25 @@ gint xdk_display_get_n_screens(XdkDisplay * self);
 
 XdkScreen * xdk_display_get_default_screen(XdkDisplay * self);
 
-void xdk_next_event(XEvent * event);
+void xdk_display_flush(XdkDisplay * self);
 
-void xdk_display_flush();
+Atom xdk_atom_from_name(
+	const char * atom_name,
+	gboolean only_if_exists);
+	
+gchar * xdk_atom_to_name(Atom atom);
+
+void xdk_display_add_window(XdkDisplay * self, XdkWindow * window);
+
+XdkWindow * xdk_display_lookup_window(XdkDisplay * self, Window xwindow);
+
+void xdk_display_remove_window(XdkDisplay * self, XdkWindow * window);
+
+gboolean xdk_display_next_event(XdkDisplay * self);
+
+void xdk_display_dispatch_event(XdkDisplay * self);
+
+XdkScreen * xdk_get_default_screen();
 
 XdkWindow * xdk_get_default_root_window();
 

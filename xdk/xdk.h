@@ -21,6 +21,10 @@ G_BEGIN_DECLS
 
 gboolean xdk_init(int * argc, char ** args[]);
 
+void xdk_main();
+
+void xdk_main_quit();
+
 G_END_DECLS
 
 #endif /* __XDK_H_ */

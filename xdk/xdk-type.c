@@ -16,11 +16,11 @@ XdkInitFunc xdk_type_get_init_func(XdkType type)
 	return xdk_type_infos[type]->init_func;
 }
 
-XdkDestroyFunc xdk_type_get_destroy_func(XdkType type)
+XdkFinalizeFunc xdk_type_get_finalize_func(XdkType type)
 {
 	g_return_val_if_fail(type >= XDK_TYPE_INVALID && type < XDK_TYPE_MAX, NULL);
 	
-	return xdk_type_infos[type]->destroy_func;
+	return xdk_type_infos[type]->finalize_func;
 }
 
 XdkType xdk_type_get_parent(XdkType type)

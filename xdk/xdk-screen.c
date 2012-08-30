@@ -20,6 +20,13 @@ struct _XdkScreen
 	XdkWindow * root;
 };
 
+void xdk_screen_set_display(XdkScreen * self, XdkDisplay * display)
+{
+	g_return_if_fail(self && display);
+	
+	self->display = display;
+}
+
 void xdk_screen_set_peer(XdkScreen * self, Screen * peer)
 {
 	g_return_if_fail(self);
@@ -100,8 +107,10 @@ XdkWindow * xdk_screen_get_root_window(XdkScreen * self)
 	g_return_val_if_fail(self, NULL);
 	
 	if(! self->root) {
+		Window xroot = XRootWindowOfScreen(self->peer);
 		self->root = xdk_base_new(XDK_TYPE_WINDOW);
-		xdk_window_set_peer(self->root, XRootWindowOfScreen(self->peer));
+		xdk_window_set_foreign_peer(self->root, xroot);
+		g_message("xdk_screen_get_root_window %p %x", self->root, xroot);
 	}
 	
 	return self->root;

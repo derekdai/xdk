@@ -13,7 +13,7 @@ int main(int * argc, char * args[])
 		xdk_display_get_vendor(display),
 		xdk_display_get_release(display));
 		
-	XdkScreen * screen = xdk_display_get_default_screen(display);
+	XdkScreen * screen = xdk_get_default_screen();
 	g_message("Default screen number is %d (%d x %d), %d dpp",
 		xdk_screen_get_number(screen),
 		xdk_screen_get_width(screen),
@@ -23,7 +23,7 @@ int main(int * argc, char * args[])
 	XdkWindow * win = xdk_window_new();
 	xdk_window_set_position(win, 100, 100);
 	xdk_window_set_size(win, 1280, 720);
-	xdk_window_realize_simple(win);
+	xdk_window_realize(win);
 	xdk_window_map(win);
 	
 	xdk_display_flush(display);

@@ -39,6 +39,8 @@ struct _XdkWindow
 	gboolean visible : 1;
 	
 	gboolean own_peer : 1;
+	
+	gboolean destroyed : 1;
 };
 
 gboolean xdk_window_init(gpointer base);

@@ -14,7 +14,7 @@ typedef enum _XdkType XdkType;
 
 typedef gboolean (* XdkInitFunc)(gpointer base);
 
-typedef void (* XdkDestroyFunc)(gpointer base);
+typedef void (* XdkFinalizeFunc)(gpointer base);
 
 struct _XdkTypeInfo
 {
@@ -26,14 +26,14 @@ struct _XdkTypeInfo
 	
 	XdkInitFunc init_func;
 	
-	XdkDestroyFunc destroy_func;
+	XdkFinalizeFunc finalize_func;
 };
 
 const char * xdk_type_get_name(XdkType type);
 
 XdkInitFunc xdk_type_get_init_func(XdkType type);
 
-XdkDestroyFunc xdk_type_get_destroy_func(XdkType type);
+XdkFinalizeFunc xdk_type_get_finalize_func(XdkType type);
 
 XdkType xdk_type_get_parent(XdkType type);
 
