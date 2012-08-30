@@ -13,7 +13,7 @@ struct _XdkWindowPrivate
 	
 	XdkScreen * screen;
 	
-	XdkWindow * parent_window;
+	XdkWindow * parent;
 	
 	gint x;
 	
@@ -26,6 +26,10 @@ struct _XdkWindowPrivate
 	XdkVisual * visual;
 	
 	gulong background_color;
+	
+	gulong event_mask;
+	
+	XdkGravity gravity;
 	
 	gboolean mapped : 1;
 	
@@ -40,6 +44,8 @@ static void xdk_window_dispose(GObject * object);
 
 static void xdk_window_finalize(GObject * object);
 
+static void xdk_window_default_realize(XdkWindow * self);
+
 G_DEFINE_TYPE(XdkWindow, xdk_window, G_TYPE_OBJECT);
 
 static void xdk_window_class_init(XdkWindowClass * clazz)
@@ -47,6 +53,8 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 	GObjectClass * gobject_class = G_OBJECT_CLASS(clazz);
 	gobject_class->dispose = xdk_window_dispose;
 	gobject_class->finalize = xdk_window_finalize;
+	
+	clazz->realize = xdk_window_default_realize;
 	
 	g_type_class_add_private(clazz, sizeof(XdkWindowPrivate));
 }
@@ -62,6 +70,8 @@ static void xdk_window_init(XdkWindow * self)
 	priv->background_color = 0xffffffff;
 	priv->width = 1;
 	priv->height = 1;
+	priv->gravity = XDK_GRAVITY_CENTER;
+	priv->event_mask = XDK_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
 }
 
 static void xdk_window_dispose(GObject * object)
@@ -80,7 +90,7 @@ static void xdk_window_finalize(GObject * object)
 
 XdkWindow * xdk_window_new()
 {
-	return g_object_new(XDK_TYPE_WINDOW, NULL);
+	return XDK_WINDOW(g_object_new(XDK_TYPE_WINDOW, NULL));
 }
 
 static void _xdk_window_set_peer(XdkWindow * self, Window peer, gboolean own_peer)
@@ -100,6 +110,11 @@ void xdk_window_set_foreign_peer(XdkWindow * self, Window peer)
 	_xdk_window_set_peer(self, peer, FALSE);
 }
 
+void xdk_window_take_peer(XdkWindow * self, Window peer)
+{
+	_xdk_window_set_peer(self, peer, TRUE);
+}
+
 Window xdk_window_get_peer(XdkWindow * self)
 {
 	g_return_val_if_fail(self, None);
@@ -117,32 +132,61 @@ gboolean xdk_window_is_realized(XdkWindow * self)
 /**
  * http://tronche.com/gui/x/xlib/window/XCreateWindow.html
  */
+Window xdk_window_create_window(
+	XdkWindow * self,
+	XdkWindow * parent,
+	XdkWindowType window_type,
+	XdkWindowAttributeMask attribute_mask,
+	XSetWindowAttributes * attributes)
+{
+	g_return_if_fail(self);
+	g_return_if_fail(parent);
+	
+	XdkWindowPrivate * priv = self->priv;
+	return XCreateWindow(
+		xdk_display_get_peer(priv->display),
+		xdk_window_get_peer(parent),
+		priv->x, priv->y,
+		priv->width, priv->height,
+		0,									/* border width */
+		CopyFromParent,						/* color depth */
+		window_type,
+		CopyFromParent,						/* visual */
+		attribute_mask,
+		attributes);
+}
+
 void xdk_window_realize(XdkWindow * self)
 {
 	g_return_if_fail(self);
 	
 	XdkWindowPrivate * priv = self->priv;
-	
 	if(None != priv->peer || priv->destroyed) {
 		return;
 	}
 	
-	XdkWindow * parent = priv->parent_window;
-	if(! parent) {
-		parent = xdk_get_default_root_window();
-	}
-	
-	Window peer = XCreateSimpleWindow(
-		xdk_display_get_peer(priv->display),
-		xdk_window_get_peer(parent),
-		priv->x, priv->y,
-		priv->width, priv->height,
-		0, 0,
-		priv->background_color);
-	
-	_xdk_window_set_peer(self, peer, TRUE);
-	
-	xdk_display_flush(priv->display);
+	XDK_WINDOW_GET_CLASS(self)->realize(self);
+}
+
+static void xdk_window_default_realize(XdkWindow * self)
+{
+	XdkWindowPrivate * priv = self->priv;
+	XdkWindow * parent = priv->parent
+		? priv->parent 
+		: xdk_get_default_root_window();
+	XSetWindowAttributes attributes = {
+		.event_mask = priv->event_mask,
+		.background_pixel = priv->background_color,
+		.win_gravity = priv->gravity,
+	};
+	Window peer = xdk_window_create_window(
+		self,
+		parent,
+		XDK_WINDOW_TYPE_INPUT_OUTPUT,
+		XDK_ATTR_MASK_BACKGROUND_COLOR | XDK_ATTR_MASK_WIN_GRAVITY |
+			XDK_ATTR_MASK_EVENT_MASK,
+		& attributes);
+	xdk_window_take_peer(self, peer);
 }
 
 void xdk_window_unrealize(XdkWindow * self)
@@ -287,4 +331,39 @@ Atom * xdk_window_list_properties(XdkWindow * self, int * n_props)
 
 void xdk_window_handle_event(XdkWindow * self, XEvent * event)
 {
+}
+
+void xdk_window_set_gravity(XdkWindow * self, XdkGravity gravity)
+{
+}
+
+XdkGravity xdk_window_get_gravity(XdkWindow self)
+{
+}
+
+void xdk_window_set_attributes(
+	XdkWindow * self,
+	XdkWindowAttributeMask mask,
+	const XSetWindowAttributes * attributes)
+{
+}
+
+void xdk_window_get_attributes(
+	XdkWindow * self,
+	XSetWindowAttributes * attributes)
+{
+}
+
+void xdk_window_set_parent(XdkWindow * self, XdkWindow * parent)
+{
+	g_return_if_fail(self);
+	
+	self->priv->parent = parent;
+}
+
+XdkWindow * xdk_window_get_parent(XdkWindow * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return self->priv->parent;
 }

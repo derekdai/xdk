@@ -23,17 +23,41 @@ struct _XdkDisplayPrivate
 	XEvent xevent;
 };
 
-G_DEFINE_TYPE(XdkDisplay, xdk_display, G_TYPE_OBJECT);
+enum {
+	SIGNAL_ERROR = 0,
+	SIGNAL_MAX,
+};
 
 static void xdk_display_dispose(GObject * object);
 
 static void xdk_display_finalize(GObject * object);
+
+static void xdk_display_error(
+	XdkDisplay * self,
+	XErrorEvent * error,
+	gpointer user_data);
+
+G_DEFINE_TYPE(XdkDisplay, xdk_display, G_TYPE_OBJECT);
+
+static guint signals[SIGNAL_MAX] = { 0, };
 
 void xdk_display_class_init(XdkDisplayClass * clazz)
 {
 	GObjectClass * gobject_clazz = G_OBJECT_CLASS(clazz);
 	gobject_clazz->dispose = xdk_display_dispose;
 	gobject_clazz->finalize = xdk_display_finalize;
+	
+	signals[SIGNAL_ERROR] = g_signal_new(
+		"error",
+		G_TYPE_FROM_CLASS(clazz),
+		G_SIGNAL_RUN_FIRST,
+		G_STRUCT_OFFSET(XdkDisplayClass, error),
+		NULL, NULL,
+		g_cclosure_marshal_VOID__POINTER,
+		G_TYPE_NONE,
+		1, G_TYPE_POINTER);
+		
+	clazz->error = xdk_display_error;
 	
 	g_type_class_add_private(clazz, sizeof(XdkDisplayPrivate));
 }
@@ -45,6 +69,11 @@ gboolean xdk_display_init_once()
 	}
 	
 	return NULL != default_display;
+}
+
+static int on_x_error(Display * display, XErrorEvent * error)
+{
+	g_error("Error");
 }
 
 static void xdk_display_init(XdkDisplay * self)
@@ -88,6 +117,8 @@ static void xdk_display_init(XdkDisplay * self)
 			self,
 			xdk_screen_get_root_window(priv->screens[i]));
 	}
+	
+	XSetErrorHandler(on_x_error);
 }
 
 static void xdk_display_dispose(GObject * object)
@@ -117,9 +148,8 @@ static void xdk_display_finalize(GObject * object)
 	G_OBJECT_CLASS(xdk_display_parent_class)->finalize(object);
 }
 
-XdkDisplay * xdk_display_new()
+static void xdk_display_error(XdkDisplay * self, XErrorEvent * error, gpointer user_data)
 {
-	return g_object_new(XDK_TYPE_DISPLAY, NULL);
 }
 
 XdkDisplay * xdk_display_get_default()

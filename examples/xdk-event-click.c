@@ -6,13 +6,8 @@ int main()
 	
 	xdk_init(NULL, NULL);
 	
-	XdkWindow * win = xdk_get_default_root_window(); //xdk_window_new();
-	xdk_window_set_size(win, 1280, 720);
-	xdk_window_realize(win);
-	g_message("%p, %x", win, xdk_window_get_peer(win));
-	//xdk_window_show(win);
+	XdkWindow * win = xdk_get_default_root_window();
 	
-	/*
 	int n_props;
 	Atom * atoms = xdk_window_list_properties(win, & n_props);
 	for(; n_props > 0; n_props --) {
@@ -23,7 +18,6 @@ int main()
 	XFree(atoms);
 
 	xdk_main();
-	*/
 	
 	return 0;
 }

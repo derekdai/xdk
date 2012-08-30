@@ -21,9 +21,13 @@ typedef struct _XdkDisplay XdkDisplay;
 
 typedef struct _XdkDisplayPrivate XdkDisplayPrivate;
 
+typedef int (* XdkErrorHandler)(XdkDisplay * display, XErrorEvent * error);
+
 struct _XdkDisplayClass
 {
 	GObjectClass base;
+	
+	void (* error)(XdkDisplay * display, XErrorEvent * error, gpointer user_data);
 };
 
 struct _XdkDisplay
@@ -34,8 +38,6 @@ struct _XdkDisplay
 };
 
 GType xdk_display_get_type();
-
-XdkDisplay * xdk_display_new();
 
 gboolean xdk_display_init_once();
 
