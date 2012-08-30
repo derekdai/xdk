@@ -151,7 +151,6 @@ XdkWindow * xdk_screen_get_root_window(XdkScreen * self)
 		Window xroot = XRootWindowOfScreen(priv->peer);
 		priv->root = xdk_window_new();
 		xdk_window_set_foreign_peer(priv->root, xroot);
-		g_message("xdk_screen_get_root_window %p %x", priv->root, xroot);
 	}
 	
 	return priv->root;

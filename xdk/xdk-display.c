@@ -60,7 +60,6 @@ static void xdk_display_init(XdkDisplay * self)
 	
 	priv->name = XDisplayString(priv->peer);
 	priv->default_screen = XDefaultScreen(priv->peer);
-	g_message("self->default_screen=%d", priv->default_screen);
 	priv->n_screens = XScreenCount(priv->peer);
 	priv->screens = g_malloc0(sizeof(XdkScreen *) * priv->n_screens);
 	priv->windows = g_hash_table_new_full(

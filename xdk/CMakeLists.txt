@@ -1,3 +1,5 @@
+add_definitions( -DG_LOG_DOMAIN="Xdk" )
+
 add_library(
 	xdk SHARED
 	xdk

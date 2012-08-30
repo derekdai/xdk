@@ -1,6 +1,5 @@
 #include "xdk-display.h"
 #include "xdk-screen.h"
-#include "xdk-window-private.h"
 #include "xdk-gc.h"
 #include "xdk-visual.h"
 
@@ -132,8 +131,6 @@ void xdk_window_realize(XdkWindow * self)
 	if(! parent) {
 		parent = xdk_get_default_root_window();
 	}
-	
-	g_message("xdk_window_realize %p %x", parent, xdk_window_get_peer(parent));
 	
 	Window peer = XCreateSimpleWindow(
 		xdk_display_get_peer(priv->display),
