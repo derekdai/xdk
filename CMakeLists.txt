@@ -5,7 +5,7 @@ project( test-xlib )
 find_package( PkgConfig )
 
 pkg_check_modules( X11 REQUIRED x11 )
-pkg_check_modules( GLIB REQUIRED glib-2.0 )
+pkg_check_modules( GLIB REQUIRED gobject-2.0 )
 
 include_directories(
 	${CMAKE_SOURCE_DIR}/xdk

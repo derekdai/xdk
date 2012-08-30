@@ -6,13 +6,10 @@
 #ifndef __XDK_H_
 #define __XDK_H_
 
-#include <glib.h>
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
-#include "xdk-type.h"
-#include "xdk-type-registry.h"
-#include "xdk-base.h"
 #include "xdk-display.h"
 #include "xdk-screen.h"
 #include "xdk-window.h"

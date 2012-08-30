@@ -6,13 +6,34 @@
 
 G_BEGIN_DECLS
 
-#define XDK_SCREEN(o)			(XDK_CAST(o, XdkScreen, XDK_TYPE_SCREEN))
+#define XDK_TYPE_SCREEN (xdk_screen_get_type())
+#define XDK_SCREEN(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), XDK_TYPE_SCREEN, XdkScreen))
+#define XDK_SCREEN_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST ((klass), XDK_TYPE_SCREEN, XdkScreenClass))
+#define IS_XDK_SCREEN(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), XDK_TYPE_SCREEN))
+#define IS_XDK_SCREEN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), XDK_TYPE_SCREEN))
+#define XDK_SCREEN_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), XDK_TYPE_SCREEN, XdkScreenClass))
+
+typedef struct _XdkScreenClass XdkScreenClass;
 
 typedef struct _XdkScreen XdkScreen;
 
-struct _XdkDisplay;
+typedef struct _XdkScreenPrivate XdkScreenPrivate;
 
-struct _XdkWindow;
+struct _XdkScreenClass
+{
+	GObjectClass base;
+};
+
+struct _XdkScreen
+{
+	GObject base;
+	
+	XdkScreenPrivate * priv;
+};
+
+GType xdk_screen_get_type();
+
+XdkScreen * xdk_screen_new();
 
 Screen * xdk_screen_get_peer(XdkScreen * self);
 

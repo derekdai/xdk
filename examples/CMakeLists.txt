@@ -1,4 +1,4 @@
-set( libraries ${X11_LIBRARIES}  ${GLIB_LIBRARIES} )
+set( libraries ${X11_LIBRARIES} ${GLIB_LIBRARIES} )
 
 add_executable( simple-window simple-window )
 target_link_libraries( simple-window ${libraries} )
@@ -16,4 +16,4 @@ add_executable( xdk-simple-window xdk-simple-window )
 target_link_libraries( xdk-simple-window ${libraries} )
 
 add_executable( xdk-event-click xdk-event-click )
-target_link_libraries( xdk-event-click xdk ${libraries} )
+target_link_libraries( xdk-event-click xdk ${GLIB_LIBRARIES} ${X11_LIBRARIES} )
