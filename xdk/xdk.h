@@ -7,14 +7,15 @@
 #define __XDK_H_
 
 #include <glib-object.h>
-
-G_BEGIN_DECLS
-
+#include <X11/Xlib.h>
+#include "xdk-types.h"
 #include "xdk-display.h"
 #include "xdk-screen.h"
 #include "xdk-window.h"
 #include "xdk-gc.h"
 #include "xdk-visual.h"
+
+G_BEGIN_DECLS
 
 gboolean xdk_init(int * argc, char ** args[]);
 

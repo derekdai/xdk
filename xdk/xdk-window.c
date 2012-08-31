@@ -1,3 +1,4 @@
+#include "xdk-window.h"
 #include "xdk-display.h"
 #include "xdk-screen.h"
 #include "xdk-gc.h"
@@ -135,7 +136,7 @@ gboolean xdk_window_is_realized(XdkWindow * self)
 Window xdk_window_create_window(
 	XdkWindow * self,
 	XdkWindow * parent,
-	XdkWindowType window_type,
+	XdkWindowClasses window_type,
 	XdkWindowAttributeMask attribute_mask,
 	XSetWindowAttributes * attributes)
 {
@@ -182,7 +183,7 @@ static void xdk_window_default_realize(XdkWindow * self)
 	Window peer = xdk_window_create_window(
 		self,
 		parent,
-		XDK_WINDOW_TYPE_INPUT_OUTPUT,
+		XDK_WINDOW_CLASSES_INPUT_OUTPUT,
 		XDK_ATTR_MASK_BACKGROUND_COLOR | XDK_ATTR_MASK_WIN_GRAVITY |
 			XDK_ATTR_MASK_EVENT_MASK,
 		& attributes);
@@ -344,8 +345,17 @@ XdkGravity xdk_window_get_gravity(XdkWindow self)
 void xdk_window_set_attributes(
 	XdkWindow * self,
 	XdkWindowAttributeMask mask,
-	const XSetWindowAttributes * attributes)
+	XSetWindowAttributes * attributes)
 {
+	g_return_if_fail(self);
+	g_return_if_fail(attributes);
+	g_return_if_fail(xdk_window_is_realized(self));
+	
+	XChangeWindowAttributes(
+		xdk_display_get_peer(self->priv->display),
+		self->priv->peer,
+		mask,
+		attributes);
 }
 
 void xdk_window_get_attributes(
@@ -366,4 +376,31 @@ XdkWindow * xdk_window_get_parent(XdkWindow * self)
 	g_return_val_if_fail(self, NULL);
 	
 	return self->priv->parent;
+}
+
+void xdk_window_set_background_color(XdkWindow * self, gulong background_color)
+{
+	if(background_color == self->priv->background_color) {
+		return;
+	}
+	
+	self->priv->background_color = background_color;
+	if(! xdk_window_is_realized(self)) {
+		return;
+	}
+	
+	XSetWindowAttributes attributes = {
+		.background_pixel = background_color,
+	};
+	xdk_window_set_attributes(
+		self,
+		XDK_ATTR_MASK_BACKGROUND_COLOR,
+		& attributes);
+}
+
+gulong xdk_window_get_background_color(XdkWindow * self)
+{
+	g_return_val_if_fail(self, 0);
+	
+	return self->priv->background_color;
 }
