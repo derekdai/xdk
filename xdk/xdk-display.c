@@ -4,7 +4,9 @@
 
 #define XDK_DISPLAY_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE(o, XDK_TYPE_DISPLAY, XdkDisplayPrivate))
 
-static XdkDisplay * default_display = NULL;
+#define XDK_DISPLAY_SOURCE(o) ((XdkDisplaySource *) (o))
+
+typedef struct _XdkDisplaySource XdkDisplaySource;
 
 struct _XdkDisplayPrivate
 {
@@ -20,7 +22,16 @@ struct _XdkDisplayPrivate
 	
 	GHashTable * windows;
 	
-	XEvent xevent;
+	GPollFD poll_fd;
+	
+	guint event_watch_id;
+};
+
+struct _XdkDisplaySource
+{
+	GSource base;
+	
+	XdkDisplay * display;
 };
 
 enum {
@@ -34,12 +45,13 @@ static void xdk_display_finalize(GObject * object);
 
 static void xdk_display_error(
 	XdkDisplay * self,
-	XErrorEvent * error,
-	gpointer user_data);
+	XErrorEvent * error);
 
 G_DEFINE_TYPE(XdkDisplay, xdk_display, G_TYPE_OBJECT);
 
 static guint signals[SIGNAL_MAX] = { 0, };
+
+static XdkDisplay * default_display = NULL;
 
 void xdk_display_class_init(XdkDisplayClass * clazz)
 {
@@ -60,15 +72,6 @@ void xdk_display_class_init(XdkDisplayClass * clazz)
 	clazz->error = xdk_display_error;
 	
 	g_type_class_add_private(clazz, sizeof(XdkDisplayPrivate));
-}
-
-gboolean xdk_display_init_once()
-{
-	if(! default_display) {
-		g_object_new(XDK_TYPE_DISPLAY, NULL);
-	}
-	
-	return NULL != default_display;
 }
 
 static int on_x_error(Display * display, XErrorEvent * error)
@@ -148,14 +151,14 @@ static void xdk_display_finalize(GObject * object)
 	G_OBJECT_CLASS(xdk_display_parent_class)->finalize(object);
 }
 
-static void xdk_display_error(XdkDisplay * self, XErrorEvent * error, gpointer user_data)
+static void xdk_display_error(XdkDisplay * self, XErrorEvent * error)
 {
 }
 
 XdkDisplay * xdk_display_get_default()
 {
 	if(! default_display) {
-		g_error("Call xdk_init() to initialize first");
+		g_object_new(XDK_TYPE_DISPLAY, NULL);
 	}
 	
 	return default_display;
@@ -278,23 +281,110 @@ void xdk_display_remove_window(XdkDisplay * self, XdkWindow * window)
 	g_hash_table_remove(self->priv->windows, GUINT_TO_POINTER(xwin));
 }
 
-gboolean xdk_display_next_event(XdkDisplay * self)
-{
-	g_return_val_if_fail(self, FALSE);
-	
-	XNextEvent(self->priv->peer, & self->priv->xevent);
-	
-	return TRUE;
-}
-
-void xdk_display_dispatch_event(XdkDisplay * self)
+static void xdk_display_dispatch_event(XdkDisplay * self)
 {
 	g_return_if_fail(self);
 	
-	XdkWindow * window = xdk_display_lookup_window(self, self->priv->xevent.xany.window);
+	XEvent event;
+	XNextEvent(self->priv->peer, & event);
+	
+	g_debug("xdk_display_dispatch_event: %d", event.type);
+	
+	XdkWindow * window = xdk_display_lookup_window(
+		self,
+		event.xany.window);
 	if(! window) {
 		return;
 	}
 	
-	xdk_window_handle_event(window, & self->priv->xevent);
+	xdk_window_dispatch_event(window, & event);
+}
+
+static gboolean xdk_display_source_prepare(GSource * source, gint * timeout)
+{
+	* timeout = -1;
+	
+	return FALSE;
+}
+
+static gboolean xdk_display_source_check(GSource * source)
+{
+	int num_events = XPending(XDK_DISPLAY_SOURCE(source)->display->priv->peer);
+	
+	g_debug("xdk_display_source_check: %d", num_events);
+	
+	return num_events > 0;
+}
+
+static gboolean xdk_display_source_dispatch(
+	GSource * source,
+	GSourceFunc callback,
+	gpointer user_data)
+{
+	callback(user_data);
+}
+
+int xdk_display_get_connection_number(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, -1);
+	
+	return XConnectionNumber(self->priv->peer);
+}
+
+GSourceFuncs xdk_display_source_funcs = {
+	xdk_display_source_prepare,
+	xdk_display_source_check,
+	xdk_display_source_dispatch,
+	NULL
+};
+
+void xdk_display_add_watch(XdkDisplay * self)
+{
+	g_return_if_fail(self);
+	
+	XdkDisplayPrivate * priv = self->priv;
+	if(priv->event_watch_id) {
+		return;
+	}
+	
+	GSource * source = xdk_display_watch_source_new(self);
+	g_source_set_name(source, "XdkDisplayEventSource");
+	g_source_set_can_recurse(source, TRUE);
+	g_source_attach(source, NULL);
+	g_source_unref(source);
+}
+
+void xdk_display_remove_watch(XdkDisplay * self)
+{
+	g_return_if_fail(self);
+	
+	XdkDisplayPrivate * priv = self->priv;
+	if(! priv->event_watch_id) {
+		return;
+	}
+	
+	g_source_remove(priv->event_watch_id);
+}
+
+GSource * xdk_display_watch_source_new(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	XdkDisplayPrivate * priv = self->priv;
+	priv->poll_fd.fd = xdk_display_get_connection_number(self);
+	priv->poll_fd.events = G_IO_IN;
+	
+	g_debug("xdk_display_watch_source_new: fd = %d", priv->poll_fd.fd);
+	
+	GSource * source = g_source_new(
+		& xdk_display_source_funcs,
+		sizeof(XdkDisplaySource));
+	g_source_add_poll(source, & priv->poll_fd);
+	g_source_set_callback(
+		source,
+		(GSourceFunc) xdk_display_dispatch_event, self,
+		NULL);
+	XDK_DISPLAY_SOURCE(source)->display = self;
+		
+	return source;
 }

@@ -27,7 +27,7 @@ struct _XdkDisplayClass
 {
 	GObjectClass base;
 	
-	void (* error)(XdkDisplay * display, XErrorEvent * error, gpointer user_data);
+	void (* error)(XdkDisplay * display, XErrorEvent * error);
 };
 
 struct _XdkDisplay
@@ -69,13 +69,17 @@ XdkWindow * xdk_display_lookup_window(XdkDisplay * self, Window xwindow);
 
 void xdk_display_remove_window(XdkDisplay * self, XdkWindow * window);
 
-gboolean xdk_display_next_event(XdkDisplay * self);
-
-void xdk_display_dispatch_event(XdkDisplay * self);
-
 XdkScreen * xdk_get_default_screen();
 
 XdkWindow * xdk_get_default_root_window();
+
+int xdk_display_get_connection_number(XdkDisplay * self);
+
+void xdk_display_add_watch(XdkDisplay * self);
+
+void xdk_display_remove_watch(XdkDisplay * self);
+
+GSource * xdk_display_watch_source_new(XdkDisplay * self);
 
 G_END_DECLS
 

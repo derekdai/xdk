@@ -24,7 +24,17 @@ struct _XdkWindowClass
 {
 	GObjectClass base;
 	
+	/* virtual functions */
 	void (* realize)(XdkWindow * self);
+	
+	void (* unrealize)(XdkWindow * self);
+	
+	void (* map)(XdkWindow * self);
+	
+	void (* unmap)(XdkWindow * self);
+
+	/* events */
+	void (* destroy_event)(XdkWindow * self, XEvent * event);
 };
 
 struct _XdkWindow
@@ -66,7 +76,7 @@ void xdk_window_get_size(XdkWindow * self, int * width, int * height);
 
 void xdk_window_set_size(XdkWindow * self, int width, int height);
 
-void xdk_window_handle_event(XdkWindow * self, XEvent * event);
+void xdk_window_dispatch_event(XdkWindow * self, XEvent * event);
 
 void xdk_window_set_attributes(
 	XdkWindow * self,
@@ -97,6 +107,14 @@ XdkWindow * xdk_window_get_parent(XdkWindow * self);
 void xdk_window_set_background_color(XdkWindow * self, gulong background_color);
 
 gulong xdk_window_get_background_color(XdkWindow * self);
+
+void xdk_window_event_set_mask(XdkWindow * self, XdkEventMask event_mask);
+
+void xdk_window_event_add_mask(XdkWindow * self, XdkEventMask event_mask);
+
+void xdk_window_event_remove_mask(XdkWindow * self, XdkEventMask event_mask);
+
+gulong xdk_window_event_get_mask(XdkWindow * self);
 
 G_END_DECLS
 

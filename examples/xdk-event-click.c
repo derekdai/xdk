@@ -6,7 +6,10 @@ int main()
 	
 	xdk_init(NULL, NULL);
 	
-	XdkWindow * win = xdk_get_default_root_window();
+	XdkWindow * win = xdk_window_new();
+	xdk_window_set_size(win, 1280, 720);
+	xdk_window_show(win);
+	g_signal_connect(win, "destroy", G_CALLBACK(xdk_main_quit), NULL);
 	
 	int n_props;
 	Atom * atoms = xdk_window_list_properties(win, & n_props);

@@ -1,16 +1,22 @@
 #ifndef __XDK_TYPES_H_
 #define __XDK_TYPES_H_
 
-#include <glib.h>
+#include <glib-object.h>
 #include <X11/Xlib.h>
 
 G_BEGIN_DECLS
+
+#define X_TYPE_EVENT		(x_event_get_type())
 
 typedef enum _XdkGravity XdkGravity;
 
 typedef enum _XdkWindowClasses XdkWindowClasses;
 
 typedef enum _XdkWindowAttributeMask XdkWindowAttributeMask;
+
+typedef enum _XdkEventMask XdkEventMask;
+
+typedef enum _XdkEventType XdkEventType;
 
 enum _XdkGravity
 {
@@ -59,6 +65,45 @@ enum _XdkEventMask
 	XDK_EVENT_MASK_OWNER_GRUB_BUTTON		= OwnerGrabButtonMask,
 };
 
+enum _XdkEventType
+{
+	XDK_EVENT_KEY_PRESS			= KeyPress,
+	XDK_EVENT_KEY_RELEASE		= KeyRelease,
+	XDK_EVENT_BUTTON_PRESS		= ButtonPress,
+	XDK_EVENT_BUTTON_RELEASE	= ButtonRelease,
+	XDK_EVENT_MOTION			= MotionNotify,
+	XDK_EVENT_ENTER				= EnterNotify,
+	XDK_EVENT_LEAVE				= LeaveNotify,
+	XDK_EVENT_FOCUS_IN			= FocusIn,
+	XDK_EVENT_FOCUS_OUT			= FocusOut,
+	XDK_EVENT_KEYMAP			= KeymapNotify,
+	XDK_EVENT_EXPOSE			= Expose,
+	XDK_EVENT_GRAPHICS_EXPOSE	= GraphicsExpose,
+	XDK_EVENT_NO_EXPOSE			= NoExpose,
+	XDK_EVENT_VISIBILITY		= VisibilityNotify,
+	XDK_EVENT_CREATE			= CreateNotify,
+	XDK_EVENT_DESTROY			= DestroyNotify,
+	XDK_EVENT_UNMAP				= UnmapNotify,
+	XDK_EVENT_MAP				= MapNotify,
+	XDK_EVENT_MAP_REQUEST		= MapRequest,
+	XDK_EVENT_REPARENT			= ReparentNotify,
+	XDK_EVENT_CONFIGURE			= ConfigureNotify,
+	XDK_EVENT_CONFIGURE_REQUEST	= ConfigureRequest,
+	XDK_EVENT_GRAVITY			= GravityNotify,
+	XDK_EVENT_RESIZE_REQUEST	= ResizeRequest,
+	XDK_EVENT_CIRCULATE			= CirculateNotify,
+	XDK_EVENT_CIRCULATE_REQUEST = CirculateRequest,
+	XDK_EVENT_PROPERTY			= PropertyNotify,
+	XDK_EVENT_SELECTION_CLEAR	= SelectionClear,
+	XDK_EVENT_SELECTION_REQUEST	= SelectionRequest,
+	XDK_EVENT_SELECTION			= SelectionNotify,
+	XDK_EVENT_COLORMAP			= ColormapNotify,
+	XDK_EVENT_CLIENT_MESSAGE	= ClientMessage,
+	XDK_EVENT_MAPPING			= MappingNotify,
+	XDK_EVENT_GENERIC			= GenericEvent,
+	XDK_EVENT_LAST				= LASTEvent
+};
+
 /**
  * http://tronche.com/gui/x/xlib/window/attributes/
  * 
@@ -104,6 +149,8 @@ enum _XdkWindowClasses
 	
 	XDK_WINDOW_CLASSES_INPUT_OUTPUT		= InputOutput
 };
+
+GType x_event_get_type();
 
 G_END_DECLS
 
