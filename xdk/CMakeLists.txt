@@ -9,6 +9,7 @@ add_library(
 	xdk-gc
 	xdk-visual
 	xdk-types
+	xdk-util
 )
 
 target_link_libraries( xdk ${X11_LIBRARIES} ${GLIB_LIBRARIES} )

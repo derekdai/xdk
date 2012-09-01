@@ -42,7 +42,9 @@ struct _XdkWindowPrivate
 };
 
 enum {
-	SIGNAL_MAX = XDK_EVENT_LAST,
+	XDK_WINDOW_DELETE_EVENT = XDK_EVENT_LAST,
+	XDK_WINDOW_DESTROY,
+	SIGNAL_MAX,
 };
 
 static void xdk_window_dispose(GObject * object);
@@ -56,6 +58,8 @@ static void xdk_window_default_unrealize(XdkWindow * self);
 static void xdk_window_default_map(XdkWindow * self);
 
 static void xdk_window_default_unmap(XdkWindow * self);
+
+static void xdk_window_handle_delete_event(XdkWindow * self, XEvent * event);
 
 G_DEFINE_TYPE(XdkWindow, xdk_window, G_TYPE_OBJECT);
 
@@ -71,6 +75,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 	clazz->unrealize = xdk_window_default_unrealize;
 	clazz->map = xdk_window_default_map;
 	clazz->unmap = xdk_window_default_unmap;
+	clazz->delete_event = xdk_window_handle_delete_event;
 	
 	/*
 	signals[XDK_EVENT_CREATE] = g_signal_new(
@@ -102,16 +107,25 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		*/
 
 	GType type = G_TYPE_FROM_CLASS(clazz);
-	signals[XDK_EVENT_DESTROY] = g_signal_new(
-		"destroy",
+	signals[XDK_WINDOW_DELETE_EVENT] = g_signal_new(
+		"delete",
 		type,
-		G_SIGNAL_RUN_FIRST,
-		G_STRUCT_OFFSET(XdkWindowClass, destroy_event),
+		G_SIGNAL_RUN_LAST,
+		G_STRUCT_OFFSET(XdkWindowClass, delete_event),
 		NULL, NULL,
 		g_cclosure_marshal_VOID__BOXED,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
-	/*	
+	signals[XDK_WINDOW_DESTROY] = g_signal_new(
+		"destroy",
+		type,
+		G_SIGNAL_RUN_LAST,
+		G_STRUCT_OFFSET(XdkWindowClass, destroy),
+		NULL, NULL,
+		g_cclosure_marshal_VOID__VOID,
+		G_TYPE_NONE, 0);
+	
+	/*
 		case XDK_EVENT_KEY_PRESS:
 	case XDK_EVENT_KEY_RELEASE:
 	case XDK_EVENT_BUTTON_PRESS:
@@ -163,8 +177,8 @@ static void xdk_window_init(XdkWindow * self)
 	priv->width = 1;
 	priv->height = 1;
 	priv->gravity = XDK_GRAVITY_CENTER;
-	priv->event_mask = XDK_EVENT_MASK_SUBSTRUCTURE_NOTIFY |
-		XDK_EVENT_MASK_STRUCTURE_NOTIFY;
+	priv->event_mask = XDK_EVENT_MASK_STRUCTURE_NOTIFY |
+		XDK_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
 }
 
 static void xdk_window_dispose(GObject * object)
@@ -189,13 +203,8 @@ XdkWindow * xdk_window_new()
 static void _xdk_window_set_peer(XdkWindow * self, Window peer, gboolean own_peer)
 {
 	g_return_if_fail(self);
+
 	XdkWindowPrivate * priv = self->priv;
-	g_return_if_fail(! priv->peer && None != peer);
-	
-	if(None == peer) {
-		xdk_display_remove_window(priv->display, self);
-	}
-	
 	priv->peer = peer;
 	priv->own_peer = own_peer;
 	
@@ -225,7 +234,7 @@ gboolean xdk_window_is_realized(XdkWindow * self)
 {
 	g_return_val_if_fail(self, FALSE);
 	
-	return None != self->priv->peer;
+	return ! self->priv->destroyed && None != self->priv->peer;
 }
 
 /**
@@ -260,7 +269,7 @@ void xdk_window_realize(XdkWindow * self)
 	g_return_if_fail(self);
 	
 	XdkWindowPrivate * priv = self->priv;
-	if(None != priv->peer || priv->destroyed) {
+	if(xdk_window_is_realized(self)) {
 		return;
 	}
 	
@@ -294,6 +303,23 @@ static void xdk_window_default_unrealize(XdkWindow * self)
 	XDestroyWindow(
 		xdk_display_get_peer(priv->display),
 		priv->peer);
+	xdk_display_flush(priv->display);
+}
+
+void xdk_window_unrealize(XdkWindow * self)
+{
+	g_return_if_fail(self);
+	
+	XdkWindowPrivate * priv = self->priv;
+	if(! xdk_window_is_realized(self)) {
+		return;
+	}
+	
+	xdk_window_unmap(self);
+	XDK_WINDOW_GET_CLASS(self)->unrealize(self);
+
+	g_signal_emit(self, signals[XDK_WINDOW_DESTROY], 0);
+	
 	_xdk_window_set_peer(self, None, priv->own_peer);
 }
 
@@ -307,23 +333,6 @@ static void xdk_window_default_unmap(XdkWindow * self)
 {
 	XdkWindowPrivate * priv = self->priv;
 	XUnmapWindow(xdk_display_get_peer(priv->display), priv->peer);
-}
-
-void xdk_window_unrealize(XdkWindow * self)
-{
-	g_return_if_fail(self);
-	
-	XdkWindowPrivate * priv = self->priv;
-	if(None == priv->peer || ! priv->own_peer || priv->destroyed) {
-		return;
-	}
-	
-	xdk_display_remove_window(priv->display, self);
-	
-	xdk_window_unmap(self);
-	
-	XDestroyWindow(xdk_display_get_peer(priv->display), priv->peer);
-	priv->peer = None;
 }
 
 void xdk_window_get_position(XdkWindow * self, int * x, int * y)
@@ -373,15 +382,12 @@ void xdk_window_map(XdkWindow * self)
 	g_return_if_fail(self);
 	
 	XdkWindowPrivate * priv = self->priv;
-	if(priv->mapped || priv->destroyed) {
+	if(xdk_window_is_mapped(self)) {
 		return;
 	}
 	
-	if(None == priv->peer) {
-		XDK_WINDOW_GET_CLASS(self)->realize(self);
-	}
+	xdk_window_realize(self);
 	XDK_WINDOW_GET_CLASS(self)->map(self);
-	
 	priv->mapped = TRUE;
 }
 
@@ -389,21 +395,20 @@ gboolean xdk_window_is_mapped(XdkWindow * self)
 {
 	g_return_val_if_fail(self, FALSE);
 	
-	return self->priv->mapped;
+	XdkWindowPrivate * priv = self->priv;
+	return ! priv->destroyed && None != priv->peer && priv->mapped;
 }
 
 void xdk_window_unmap(XdkWindow * self)
 {
 	g_return_if_fail(self);
 	
-	XdkWindowPrivate * priv = self->priv;
-	if(! xdk_window_is_realized(self) || ! priv->mapped) {
+	if(! xdk_window_is_mapped(self)) {
 		return;
 	}
 	
 	XDK_WINDOW_GET_CLASS(self)->unmap(self);
-	
-	priv->mapped = FALSE;
+	self->priv->mapped = FALSE;
 }
 
 void xdk_window_show(XdkWindow * self)
@@ -455,8 +460,6 @@ Atom * xdk_window_list_properties(XdkWindow * self, int * n_props)
 
 void xdk_window_dispatch_event(XdkWindow * self, XEvent * event)
 {
-	g_debug("xdk_window_dispatch_event: event->type = %d", event->type);
-	
 	switch(event->type) {
 	case XDK_EVENT_KEY_PRESS:
 		break;
@@ -522,6 +525,10 @@ void xdk_window_dispatch_event(XdkWindow * self, XEvent * event)
 	case XDK_EVENT_COLORMAP:
 		break;
 	case XDK_EVENT_CLIENT_MESSAGE:
+		if(event->xclient.data.l[0] ==
+				xdk_display_atom_get(self->priv->display, XDK_ATOM_WM_DELETE_WINDOW)) {
+			g_signal_emit(self, signals[XDK_WINDOW_DELETE_EVENT], 0, event);
+		}
 		break;
 	case XDK_EVENT_MAPPING:
 		break;
@@ -629,4 +636,53 @@ gulong xdk_window_event_get_mask(XdkWindow * self)
 	g_return_val_if_fail(self, 0);
 	
 	return self->priv->event_mask;
+}
+
+XdkScreen * xdk_window_get_screen(XdkWindow * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return self->priv->screen;
+}
+
+void xdk_window_set_screen(XdkWindow * self, XdkScreen * screen)
+{
+	g_return_if_fail(self);
+	g_return_if_fail(screen);
+
+	self->priv->screen = screen;
+}
+
+void xdk_window_set_wm_protocols(XdkWindow * self, Atom * protocols, gint n_protocols)
+{
+	g_return_if_fail(self);
+	g_return_if_fail(protocols);
+	
+	XSetWMProtocols(
+		xdk_display_get_peer(self->priv->display),
+		self->priv->peer,
+		protocols, n_protocols);
+}
+
+Atom * xdk_window_get_wm_protocols(XdkWindow * self, gint * n_protocols)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	gint tmp;
+	if(! n_protocols) {
+		n_protocols = & tmp;
+	}
+	
+	Atom * protocols = NULL;
+	XGetWMProtocols(
+		xdk_display_get_peer(self->priv->display),
+		self->priv->peer,
+		& protocols, n_protocols);
+	
+	return protocols;
+}
+
+static void xdk_window_handle_delete_event(XdkWindow * self, XEvent * event)
+{
+	xdk_window_destroy(self);
 }

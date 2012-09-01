@@ -4,6 +4,7 @@
 #include <glib-object.h>
 #include <X11/Xlib.h>
 #include "xdk-types.h"
+#include "xdk-screen.h"
 
 G_BEGIN_DECLS
 
@@ -34,7 +35,13 @@ struct _XdkWindowClass
 	void (* unmap)(XdkWindow * self);
 
 	/* events */
+	void (* delete_event)(XdkWindow * self, XEvent * event);
+	
+	/* notication of child window destroyed */
 	void (* destroy_event)(XdkWindow * self, XEvent * event);
+	
+	/* notication of this window destroyed */
+	void (* destroy)(XdkWindow * self);
 };
 
 struct _XdkWindow
@@ -67,6 +74,10 @@ gboolean xdk_window_is_mapped(XdkWindow * self);
 void xdk_window_unmap(XdkWindow * self);
 
 void xdk_window_destroy(XdkWindow * self);
+
+XdkScreen * xdk_window_get_screen(XdkWindow * self);
+
+void xdk_window_set_screen(XdkWindow * self, XdkScreen * screen);
 
 void xdk_window_get_position(XdkWindow * self, int * x, int * y);
 
@@ -115,6 +126,10 @@ void xdk_window_event_add_mask(XdkWindow * self, XdkEventMask event_mask);
 void xdk_window_event_remove_mask(XdkWindow * self, XdkEventMask event_mask);
 
 gulong xdk_window_event_get_mask(XdkWindow * self);
+
+void xdk_window_set_wm_protocols(XdkWindow * self, Atom * protocols, gint n_protocols);
+
+Atom * xdk_window_get_wm_protocols(XdkWindow * self, gint * n_protocols);
 
 G_END_DECLS
 

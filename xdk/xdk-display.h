@@ -23,11 +23,11 @@ typedef struct _XdkDisplayPrivate XdkDisplayPrivate;
 
 typedef int (* XdkErrorHandler)(XdkDisplay * display, XErrorEvent * error);
 
+typedef gboolean (* XdkEventFilter)(XdkDisplay * display, XEvent * event);
+
 struct _XdkDisplayClass
 {
 	GObjectClass base;
-	
-	void (* error)(XdkDisplay * display, XErrorEvent * error);
 };
 
 struct _XdkDisplay
@@ -36,6 +36,11 @@ struct _XdkDisplay
 	
 	XdkDisplayPrivate * priv;
 };
+
+/**
+ * keys to get atom from xdk_display_atom_get()
+ */
+extern GQuark XDK_ATOM_WM_DELETE_WINDOW;
 
 GType xdk_display_get_type();
 
@@ -63,6 +68,13 @@ Atom xdk_atom_from_name(
 	
 gchar * xdk_atom_to_name(Atom atom);
 
+Atom xdk_display_atom_from_name(
+	XdkDisplay * self,
+	const char * atom_name,
+	gboolean only_if_exists);
+	
+gchar * xdk_display_atom_to_name(XdkDisplay * self, Atom atom);
+
 void xdk_display_add_window(XdkDisplay * self, XdkWindow * window);
 
 XdkWindow * xdk_display_lookup_window(XdkDisplay * self, Window xwindow);
@@ -80,6 +92,8 @@ void xdk_display_add_watch(XdkDisplay * self);
 void xdk_display_remove_watch(XdkDisplay * self);
 
 GSource * xdk_display_watch_source_new(XdkDisplay * self);
+
+XdkEventFilter xdk_display_set_event_filter(XdkDisplay * self, XdkEventFilter filter);
 
 G_END_DECLS
 
