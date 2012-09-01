@@ -6,11 +6,16 @@ gboolean quited = FALSE;
 void on_delete(Display * display, Window window)
 {
 	XDestroyWindow(display, window);
+	quited = TRUE;
+	
+	g_message("Window destroyed");
 }
 
 void on_destroy(Display * display, Window window)
 {
 	quited = TRUE;
+	
+	g_message("Exiting...");
 }
 
 int main()
@@ -45,18 +50,17 @@ int main()
 	XEvent event;
 	while(! quited) {
 		XNextEvent(display, & event);
-		g_message("%d", event.type);
+		g_message("%d, %d, %d", ClientMessage, event.type);
 		switch(event.type) {
-		case DestroyNotify:
-			on_destroy(event.xdestroywindow.display, event.xdestroywindow.window);
-			break;
 		case ClientMessage:
 			if(event.xclient.data.l[0] == wm_delete_window) {
-				on_destroy(event.xclient.display, event.xclient.window);
+				on_delete(event.xclient.display, event.xclient.window);
 			}
 			break;
 		}
 	}
+	
+	XCloseDisplay(display);
 	
 	return 0;
 }
