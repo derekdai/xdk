@@ -44,7 +44,7 @@ void xdk_util_event_dump(XEvent * event)
 {
 	gchar * desc = xdk_util_event_to_string(event);
 	if(desc) {
-		g_debug("%s", desc);
+		g_printerr("%s\n", desc);
 		g_free(desc);
 	}
 }

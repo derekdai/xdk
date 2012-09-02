@@ -41,6 +41,22 @@ struct _XdkWindowClass
 	void (* map_notify)(XdkWindow * self, XEvent * event);
 	
 	void (* unmap_notify)(XdkWindow * self, XEvent * event);
+	
+	void (* gravity_notify)(XdkWindow * self, XEvent * event);
+	
+	void (* key_press)(XdkWindow * self, XEvent * event);
+	
+	void (* key_release)(XdkWindow * self, XEvent * event);
+	
+	void (* button_press)(XdkWindow * self, XEvent * event);
+	
+	void (* button_release)(XdkWindow * self, XEvent * event);
+	
+	void (* motion)(XdkWindow * self, XEvent * event);
+	
+	void (* enter)(XdkWindow * self, XEvent * event);
+	
+	void (* leave)(XdkWindow * self, XEvent * event);
 };
 
 struct _XdkWindow
