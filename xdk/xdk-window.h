@@ -30,18 +30,17 @@ struct _XdkWindowClass
 	
 	void (* unrealize)(XdkWindow * self);
 	
-	void (* map)(XdkWindow * self);
-	
-	void (* unmap)(XdkWindow * self);
-
-	/* events */
+	/* delete event sent by window manager */
 	void (* delete_event)(XdkWindow * self, XEvent * event);
 	
-	/* notication of child window destroyed */
-	void (* destroy_event)(XdkWindow * self, XEvent * event);
-	
-	/* notication of this window destroyed */
+	/* destroy emitted when unrealize by XdkWindow itself */
 	void (* destroy)(XdkWindow * self);
+
+	void (* configure_notify)(XdkWindow * self, XEvent * event);
+	
+	void (* map_notify)(XdkWindow * self, XEvent * event);
+	
+	void (* unmap_notify)(XdkWindow * self, XEvent * event);
 };
 
 struct _XdkWindow
@@ -83,9 +82,9 @@ void xdk_window_get_position(XdkWindow * self, int * x, int * y);
 
 void xdk_window_set_position(XdkWindow * self, int x, int y);
 
-void xdk_window_get_size(XdkWindow * self, int * width, int * height);
+void xdk_window_get_size(XdkWindow * self, guint * width, guint * height);
 
-void xdk_window_set_size(XdkWindow * self, int width, int height);
+void xdk_window_set_size(XdkWindow * self, guint width, guint height);
 
 void xdk_window_dispatch_event(XdkWindow * self, XEvent * event);
 
@@ -100,7 +99,15 @@ void xdk_window_get_attributes(
 
 void xdk_window_set_gravity(XdkWindow * self, XdkGravity gravity);
 
-XdkGravity xdk_window_get_gravity(XdkWindow self);
+XdkGravity xdk_window_get_gravity(XdkWindow * self);
+
+void xdk_window_raise(XdkWindow * self);
+
+void xdk_window_lower(XdkWindow * self);
+
+void xdk_window_set_borser_width(XdkWindow * self, guint width);
+
+guint xdk_window_get_borser_width(XdkWindow * self);
 
 Atom * xdk_window_list_properties(XdkWindow * self, int * n_props);
 

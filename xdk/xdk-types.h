@@ -20,7 +20,7 @@ typedef enum _XdkEventType XdkEventType;
 
 enum _XdkGravity
 {
-	XDK_GRAVITY_FORGET		= ForgetGravity,
+	XDK_GRAVITY_UNMAP		= UnmapGravity,
 	XDK_GRAVITY_NORTH_WEST	= NorthWestGravity,
 	XDK_GRAVITY_NORTH		= NorthGravity,
 	XDK_GRAVITY_NORTH_EAST	= NorthEastGravity,
@@ -30,6 +30,8 @@ enum _XdkGravity
 	XDK_GRAVITY_SOUTH_WEST	= SouthWestGravity,
 	XDK_GRAVITY_SOUTH		= SouthGravity,
 	XDK_GRAVITY_SOUTH_EAST	= SouthEastGravity,
+	// this one only for bit_gravity
+	XDK_GRAVITY_FORGET		= ForgetGravity,
 };
 
 /**

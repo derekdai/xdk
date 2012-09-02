@@ -44,7 +44,7 @@ void xdk_util_event_dump(XEvent * event)
 {
 	gchar * desc = xdk_util_event_to_string(event);
 	if(desc) {
-		g_printerr("%s\n", desc);
+		g_debug("%s", desc);
 		g_free(desc);
 	}
 }
@@ -56,7 +56,7 @@ gchar * xdk_util_event_to_string(XEvent * event)
 	return g_strdup_printf("%s:\n\tserial=%lu\n\tsend_event=%s\n\tdisplay=%s\n\twindow=%d",
 		xdk_util_event_get_name(event),
 		event->xany.serial,
-		event->xany.send_event ? "TRUE" : "FALSE",
+		event->xany.send_event ? "true" : "false",
 		XDisplayString(event->xany.display),
 		event->xany.window);
 }

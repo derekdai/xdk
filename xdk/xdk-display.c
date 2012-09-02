@@ -309,14 +309,6 @@ void xdk_display_add_window(XdkDisplay * self, XdkWindow * window)
 	Window xwin = xdk_window_get_peer(window);
 	g_return_if_fail(None != xwin);
 	
-	XdkWindow * root = xdk_screen_get_root_window(xdk_window_get_screen(window));
-	XdkWindow * parent = xdk_window_get_parent(window);
-	if(! parent || parent == root) {
-		// see simple-window-destroy.c
-		Atom atom = xdk_display_atom_get(self, XDK_ATOM_WM_DELETE_WINDOW);
-		xdk_window_set_wm_protocols(window, & atom, 1);
-	}
-	
 	g_signal_connect(
 		window, "destroy",
 		G_CALLBACK(xdk_display_window_destroyed), self);
@@ -417,6 +409,8 @@ static gboolean xdk_display_source_dispatch(
 	gpointer user_data)
 {
 	callback(user_data);
+	
+	return TRUE;
 }
 
 GSourceFuncs xdk_display_source_funcs = {
@@ -485,4 +479,54 @@ XdkEventFilter xdk_display_set_event_filter(XdkDisplay * self, XdkEventFilter fi
 	self->priv->filter = filter;
 	
 	return old;
+}
+
+GList * xdk_display_list_screen(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	int i = 0;
+	GList * screens = NULL;
+	for(; i < xdk_display_get_n_screens(self); i ++) {
+		screens = g_list_append(screens, self->priv->screens[i]);
+	}
+	
+	return screens;
+}
+
+XdkScreen * xdk_display_lookup_screen(XdkDisplay * self, Screen * screen)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	int i = 0;
+	XdkScreen * xdk_screen = NULL;
+	for(; i < xdk_display_get_n_screens(self); i ++) {
+		if(xdk_screen_get_peer(self->priv->screens[i]) == screen) {
+			xdk_screen = self->priv->screens[i];
+			break;
+		}
+	}
+	
+	return xdk_screen;
+}
+
+gint xdk_display_get_n_windows(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, 0);
+	
+	return g_hash_table_size(self->priv->windows);
+}
+
+GList * xdk_display_list_windows(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return g_hash_table_get_values(self->priv->windows);
+}
+
+GList * xdk_display_list_xwindows(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return g_hash_table_get_keys(self->priv->windows);
 }

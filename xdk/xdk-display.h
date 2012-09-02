@@ -56,10 +56,6 @@ gint xdk_display_get_release(XdkDisplay * self);
 
 const gchar * xdk_display_get_name(XdkDisplay * self);
 
-gint xdk_display_get_n_screens(XdkDisplay * self);
-
-XdkScreen * xdk_display_get_default_screen(XdkDisplay * self);
-
 void xdk_display_flush(XdkDisplay * self);
 
 Atom xdk_atom_from_name(
@@ -81,10 +77,6 @@ XdkWindow * xdk_display_lookup_window(XdkDisplay * self, Window xwindow);
 
 void xdk_display_remove_window(XdkDisplay * self, XdkWindow * window);
 
-XdkScreen * xdk_get_default_screen();
-
-XdkWindow * xdk_get_default_root_window();
-
 int xdk_display_get_connection_number(XdkDisplay * self);
 
 void xdk_display_add_watch(XdkDisplay * self);
@@ -94,6 +86,24 @@ void xdk_display_remove_watch(XdkDisplay * self);
 GSource * xdk_display_watch_source_new(XdkDisplay * self);
 
 XdkEventFilter xdk_display_set_event_filter(XdkDisplay * self, XdkEventFilter filter);
+
+XdkScreen * xdk_display_get_default_screen(XdkDisplay * self);
+
+gint xdk_display_get_n_screens(XdkDisplay * self);
+
+GList * xdk_display_list_screens(XdkDisplay * display);
+
+gint xdk_display_get_n_windows(XdkDisplay * self);
+
+GList * xdk_display_list_windows(XdkDisplay * display);
+
+GList * xdk_display_list_xwindows(XdkDisplay * display);
+
+XdkScreen * xdk_display_lookup_screen(XdkDisplay * display, Screen * screen);
+
+XdkScreen * xdk_get_default_screen();
+
+XdkWindow * xdk_get_default_root_window();
 
 G_END_DECLS
 
