@@ -21,5 +21,5 @@ set( libraries xdk ${X11_LIBRARIES}  ${GLIB_LIBRARIES} )
 add_executable( xdk-simple-window xdk-simple-window )
 target_link_libraries( xdk-simple-window ${libraries} )
 
-add_executable( xdk-event-click xdk-event-click )
-target_link_libraries( xdk-event-click xdk ${GLIB_LIBRARIES} ${X11_LIBRARIES} )
+#add_executable( xdk-button xdk-button )
+#target_link_libraries( xdk-button xdk ${GLIB_LIBRARIES} ${X11_LIBRARIES} )
