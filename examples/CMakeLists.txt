@@ -3,8 +3,8 @@ set( libraries ${X11_LIBRARIES} ${GLIB_LIBRARIES} )
 add_executable( simple-window simple-window )
 target_link_libraries( simple-window ${libraries} )
 
-add_executable( simple-window-destroy simple-window-destroy )
-target_link_libraries( simple-window-destroy ${libraries} )
+add_executable( simple-window-wm-delete-window simple-window-wm-delete-window )
+target_link_libraries( simple-window-wm-delete-window ${libraries} )
 
 add_executable( simple-window-keypress-draw simple-window-keypress-draw )
 target_link_libraries( simple-window-keypress-draw ${libraries} )
