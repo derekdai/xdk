@@ -94,6 +94,13 @@ static int on_x_error(Display * display, XErrorEvent * error)
 	g_error("Error");
 }
 
+static gboolean xdk_display_dump_event(Display * display, XEvent * event)
+{
+	xdk_util_event_dump(event);
+	
+	return TRUE;
+}
+
 static void xdk_display_init(XdkDisplay * self)
 {
 	XdkDisplayPrivate * priv = XDK_DISPLAY_GET_PRIVATE(self);
@@ -138,6 +145,10 @@ static void xdk_display_init(XdkDisplay * self)
 		G_OBJECT(self),
 		XDK_ATOM_WM_DELETE_WINDOW,
 		GUINT_TO_POINTER(atom));
+		
+	if(g_getenv("XDK_DUMP_EVENT")) {
+		xdk_display_set_event_filter(self, (XdkEventFilter) xdk_display_dump_event);
+	}
 }
 
 static void xdk_display_dispose(GObject * object)
