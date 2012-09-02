@@ -12,6 +12,9 @@ target_link_libraries( simple-window-keypress-draw ${libraries} )
 add_executable( simple-draw-with-color simple-draw-with-color )
 target_link_libraries( simple-draw-with-color ${libraries} )
 
+add_executable( integrate-glib-main-loop integrate-glib-main-loop )
+target_link_libraries( integrate-glib-main-loop ${libraries} )
+
 include_directories( ${CMAKE_SOURCE_DIR} )
 set( libraries xdk ${X11_LIBRARIES}  ${GLIB_LIBRARIES} )
 
