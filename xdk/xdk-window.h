@@ -154,6 +154,20 @@ void xdk_window_set_wm_protocols(XdkWindow * self, Atom * protocols, gint n_prot
 
 Atom * xdk_window_get_wm_protocols(XdkWindow * self, gint * n_protocols);
 
+void xdk_window_add_child(XdkWindow * self, XdkWindow * child);
+
+void xdk_window_remove_child(XdkWindow * self, XdkWindow * child);
+
+gboolean xdk_window_contains_child(XdkWindow * self, XdkWindow * child);
+
+GList * xdk_window_list_children(XdkWindow * self);
+
+void xdk_window_show(XdkWindow * self);
+
+void xdk_window_all(XdkWindow * self);
+
+void xdk_window_hide(XdkWindow * self);
+
 G_END_DECLS
 
 #endif /* __XDK_WINDOW_H_ */

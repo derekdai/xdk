@@ -23,3 +23,6 @@ target_link_libraries( xdk-simple-window ${libraries} )
 
 add_executable( xdk-button xdk-button )
 target_link_libraries( xdk-button xdk ${GLIB_LIBRARIES} ${X11_LIBRARIES} )
+
+add_executable( xdk-parent-child xdk-parent-child )
+target_link_libraries( xdk-parent-child xdk ${GLIB_LIBRARIES} ${X11_LIBRARIES} )

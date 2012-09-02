@@ -34,6 +34,8 @@ struct _XdkWindowPrivate
 	
 	XdkGravity gravity;
 	
+	GList * children;
+	
 	gboolean mapped : 1;
 	
 	gboolean visible : 1;
@@ -343,6 +345,10 @@ Window xdk_window_create_window(
 	g_return_if_fail(self);
 	g_return_if_fail(parent);
 	
+	if(! xdk_window_is_realized(parent)) {
+		xdk_window_realize(parent);
+	}
+	
 	XdkWindowPrivate * priv = self->priv;
 	return XCreateWindow(
 		xdk_display_get_peer(priv->display),
@@ -379,7 +385,7 @@ static void xdk_window_default_realize(XdkWindow * self)
 	};
 	Window peer = xdk_window_create_window(
 		self,
-		xdk_get_default_root_window(),
+		xdk_window_get_parent(self),
 		XDK_WINDOW_CLASSES_INPUT_OUTPUT,
 		XDK_ATTR_MASK_BACKGROUND_COLOR | XDK_ATTR_MASK_WIN_GRAVITY |
 			XDK_ATTR_MASK_EVENT_MASK,
@@ -522,6 +528,15 @@ void xdk_window_show(XdkWindow * self)
 	xdk_window_map(self);
 }
 
+void xdk_window_show_all(XdkWindow * self)
+{
+	g_return_if_fail(self);
+	
+	xdk_window_show(self);
+	
+	g_list_foreach(self->priv->children, (GFunc) xdk_window_show, NULL);
+}
+
 void xdk_window_hide(XdkWindow * self)
 {
 	xdk_window_unmap(self);
@@ -658,7 +673,12 @@ XdkWindow * xdk_window_get_parent(XdkWindow * self)
 {
 	g_return_val_if_fail(self, NULL);
 	
-	return self->priv->parent;
+	XdkWindowPrivate * priv = self->priv;
+	if(! priv->parent) {
+		xdk_window_set_parent(self, xdk_screen_get_root_window(priv->screen));
+	}
+	
+	return priv->parent;
 }
 
 void xdk_window_set_background_color(XdkWindow * self, gulong background_color)
@@ -831,4 +851,49 @@ guint xdk_window_get_borser_width(XdkWindow * self)
 	g_return_val_if_fail(self, 0);
 	
 	return self->priv->border_width;
+}
+
+void xdk_window_add_child(XdkWindow * self, XdkWindow * child)
+{
+	g_return_if_fail(self);
+	g_return_if_fail(child);
+	
+	if(xdk_window_contains_child(self, child)) {
+		return;
+	}
+	
+	XdkWindowPrivate * priv = self->priv;
+	priv->children = g_list_append(priv->children, g_object_ref(child));
+	xdk_window_set_parent(child, self);
+}
+
+void xdk_window_remove_child(XdkWindow * self, XdkWindow * child)
+{
+	g_return_if_fail(self);
+	g_return_if_fail(child);
+	
+	XdkWindowPrivate * priv = self->priv;
+	GList * node = g_list_find(priv->children, child);
+	if(NULL == node) {
+		return;
+	}
+	
+	priv->children = g_list_delete_link(priv->children, node);
+	g_object_unref(child);
+	xdk_window_set_parent(self, NULL);
+}
+
+gboolean xdk_window_contains_child(XdkWindow * self, XdkWindow * child)
+{
+	g_return_val_if_fail(self, FALSE);
+	g_return_val_if_fail(child, FALSE);
+
+	return NULL != g_list_find(self->priv->children, child);
+}
+
+GList * xdk_window_list_children(XdkWindow * self)
+{
+	g_return_val_if_fail(self, NULL);
+
+	return g_list_copy(self->priv->children);
 }
