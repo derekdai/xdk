@@ -109,12 +109,7 @@ static void xdk_display_init(XdkDisplay * self)
 	priv->default_screen = XDefaultScreen(priv->peer);
 	priv->n_screens = XScreenCount(priv->peer);
 	priv->screens = g_malloc0(sizeof(XdkScreen *) * priv->n_screens);
-	priv->windows = g_hash_table_new_full(
-		g_direct_hash,
-		g_direct_equal,
-		NULL,
-		g_object_unref
-	);
+	priv->windows = g_hash_table_new(g_direct_hash, g_direct_equal);
 	
 	// display ready to expose to outside world
 	default_display = self;
