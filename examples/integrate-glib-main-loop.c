@@ -1,6 +1,8 @@
 #include <glib-object.h>
 #include <X11/Xlib.h>
 
+#define X_TYPE_EVENT (x_event_get_type())
+
 #define MY_TYPE_WIN (my_win_get_type())
 #define MY_WIN(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), MY_TYPE_WIN, MyWin))
 
@@ -8,11 +10,20 @@ typedef struct _MyWinClass MyWinClass;
 
 typedef struct _MyWin MyWin;
 
+enum _MyWinSignal
+{
+	MY_WIN_SIGNAL_CONFIGURE_NOTIFY,
+	MY_WIN_SIGNAL_DELETE_EVENT,
+	MY_WIN_SIGNAL_LAST
+};
+
 struct _MyWinClass
 {
 	GObjectClass base;
 	
-	void (* delete_event)(MyWin * self);
+	void (* delete_event)(MyWin * self, XEvent * event);
+	
+	void (* configure_notify)(MyWin * self, XEvent * event);
 };
 
 struct _MyWin
@@ -20,9 +31,19 @@ struct _MyWin
 	GObject base;
 	
 	Window peer;
+	
+	gint x;
+	
+	gint y;
+	
+	guint width;
+	
+	guint height;
 };
 
-void my_win_handle_delete_event(MyWin * self);
+void my_win_handle_delete_event(MyWin * self, XEvent * event);
+
+void my_win_handle_configure_notify(MyWin * self, XEvent * event);
 
 void my_win_finalize(GObject * object);
 
@@ -32,11 +53,34 @@ Display * display;
 
 GHashTable * windows;
 
-guint delete_event_signal;
+guint my_win_signals[MY_WIN_SIGNAL_LAST];
 
 GMainLoop * loop;
 
 Atom ATOM_WM_DELETE_WINDOW;
+
+XEvent * x_event_copy(const XEvent * event)
+{
+	return g_slice_dup(XEvent, event);
+}
+
+void x_event_free(XEvent * event)
+{
+	g_slice_free(XEvent, event);
+}
+
+GType x_event_get_type()
+{
+	static GType type = 0;
+	if(! type) {
+		type = g_boxed_type_register_static(
+			"XEvent",
+			(GBoxedCopyFunc) x_event_copy,
+			(GBoxedFreeFunc) x_event_free);
+	}
+	
+	return type;
+}
 
 void my_win_class_init(MyWinClass * clazz)
 {
@@ -44,29 +88,57 @@ void my_win_class_init(MyWinClass * clazz)
 	object_class->finalize = my_win_finalize;
 	
 	clazz->delete_event = my_win_handle_delete_event;
+	clazz->configure_notify = my_win_handle_configure_notify;
 	
-	delete_event_signal = g_signal_new(
+	my_win_signals[MY_WIN_SIGNAL_DELETE_EVENT] = g_signal_new(
 		"delete-event",
 		G_TYPE_FROM_CLASS(clazz),
 		G_SIGNAL_RUN_FIRST,
 		G_STRUCT_OFFSET(MyWinClass, delete_event),
 		NULL, NULL,
 		g_cclosure_marshal_generic,
-		G_TYPE_NONE, 0);
+		G_TYPE_NONE, 1, X_TYPE_EVENT);
+	
+	my_win_signals[MY_WIN_SIGNAL_CONFIGURE_NOTIFY] = g_signal_new(
+		"configure-notify",
+		G_TYPE_FROM_CLASS(clazz),
+		G_SIGNAL_RUN_FIRST,
+		G_STRUCT_OFFSET(MyWinClass, configure_notify),
+		NULL, NULL,
+		g_cclosure_marshal_generic,
+		G_TYPE_NONE, 1, X_TYPE_EVENT);
 }
 
 void my_win_init(MyWin * self)
 {
+	self->peer = None;
+	self->width = 1280;
+	self->height = 720;
+}
+
+void my_win_realize(MyWin * self)
+{
+	if(None != self->peer) {
+		return;
+	}
+	
 	Window root = DefaultRootWindow(display);
 	if(None == root) {
 		g_error("No root window found");
 	}
-
-	self->peer = XCreateSimpleWindow(
+	
+	XSetWindowAttributes attributes = {
+		.background_pixel = 0x7fffffff,
+		.event_mask = StructureNotifyMask
+	};
+	self->peer = XCreateWindow(
 		display, root,
-		0, 0, 1280, 720,
-		0, 0,
-		0xffffffff);
+		self->x, self->y, self->width, self->height,
+		0,												/* border width */
+		CopyFromParent,									/* depth */
+		InputOutput,									/* class */
+		CopyFromParent,									/* visual */
+		CWBackPixel | CWEventMask, & attributes);
 	if(None == self->peer) {
 		g_error("Failed to create window");
 	}
@@ -99,24 +171,48 @@ void my_win_finalize(GObject * object)
 	G_OBJECT_CLASS(my_win_parent_class)->finalize(object);
 }
 
-void my_win_handle_delete_event(MyWin * self)
+void my_win_handle_delete_event(MyWin * self, XEvent * event)
 {
 	// destroy if we receive delete event sent by window manager
 	my_win_destroy(self);
 }
 
+void my_win_handle_configure_notify(MyWin * self, XEvent * event)
+{
+	self->x = event->xconfigure.x;
+	self->y = event->xconfigure.y;
+	self->width = event->xconfigure.width;
+	self->height = event->xconfigure.height;
+}
+
+void my_win_dispatch_event(MyWin * self, XEvent * event)
+{
+	guint signal_id;
+	switch(event->type) {
+	case ClientMessage:
+		if(event->xclient.data.l[0] != ATOM_WM_DELETE_WINDOW) {
+			return;
+		}
+		signal_id = my_win_signals[MY_WIN_SIGNAL_DELETE_EVENT];
+		break;
+	case ConfigureNotify:
+		signal_id = my_win_signals[MY_WIN_SIGNAL_CONFIGURE_NOTIFY];
+		break;
+	default:
+		return;
+	}
+
+	g_signal_emit(self, signal_id, 0, event);
+}
+
 gboolean x_event_prepare(GSource * self, gint * timeout)
 {
-	g_message("x_event_prepare");
-	
 	* timeout = -1;
 	return FALSE;
 }
 
 gboolean x_event_check(GSource * self)
 {
-	g_message("x_event_check: %d", XPending(display));
-	
 	return XPending(display) > 0;
 }
 
@@ -127,22 +223,15 @@ gboolean x_event_dispatch(GSource * source, GSourceFunc callback, gpointer user_
 
 	g_message("x_event_dispatch: %d", event.type);
 
-	if(ClientMessage != event.type) {
-		return FALSE;
-	}
-
-	if(event.xclient.data.l[0] != ATOM_WM_DELETE_WINDOW) {
-		return FALSE;
-	}
-
 	MyWin * win = g_hash_table_lookup(windows, GUINT_TO_POINTER(event.xany.window));
 	if(! win) {
 		g_warning("Unkown window %lu", event.xany.window);
-		return FALSE;
+		return TRUE;
 	}
 	
-	g_message("WM_DELETE_WINDOW dispatched to window %lu", event.xany.window);
-	g_signal_emit(win, delete_event_signal, 0);
+	my_win_dispatch_event(win, & event);
+	
+	return TRUE;
 }
 
 void on_window_delete()
@@ -153,6 +242,13 @@ void on_window_delete()
 	
 	g_message("Bye");
 	g_main_loop_quit(loop);
+}
+
+void on_window_configured(MyWin * my_win)
+{
+	g_message("New dimension: %d %d %d %d",
+		my_win->x, my_win->y,
+		my_win->width, my_win->height);
 }
 
 int main()
@@ -185,7 +281,9 @@ int main()
 	g_message("Listen on fd %d", poll_fd.fd);
 
 	MyWin * my_win = g_object_new(MY_TYPE_WIN, NULL);
+	my_win_realize(my_win);
 	g_signal_connect(my_win, "delete-event", G_CALLBACK(on_window_delete), NULL);
+	g_signal_connect(my_win, "configure-notify", G_CALLBACK(on_window_configured), NULL);
 	
 	loop = g_main_loop_new(NULL, FALSE);
 	g_main_loop_run(loop);
