@@ -23,7 +23,7 @@ typedef struct _XdkDisplayPrivate XdkDisplayPrivate;
 
 typedef int (* XdkErrorHandler)(XdkDisplay * display, XErrorEvent * error);
 
-typedef gboolean (* XdkEventFilter)(XdkDisplay * display, XEvent * event);
+typedef gboolean (* XdkEventFilter)(XdkDisplay * display, XEvent * event, gpointer user_data);
 
 struct _XdkDisplayClass
 {
@@ -58,6 +58,8 @@ const gchar * xdk_display_get_name(XdkDisplay * self);
 
 void xdk_display_flush(XdkDisplay * self);
 
+void xdk_flush();
+
 Atom xdk_atom_from_name(
 	const char * atom_name,
 	gboolean only_if_exists);
@@ -85,7 +87,15 @@ void xdk_display_remove_watch(XdkDisplay * self);
 
 GSource * xdk_display_watch_source_new(XdkDisplay * self);
 
-XdkEventFilter xdk_display_set_event_filter(XdkDisplay * self, XdkEventFilter filter);
+void xdk_display_add_event_filter(
+	XdkDisplay * self,
+	XdkEventFilter filter,
+	gpointer user_data);
+
+void xdk_display_remove_event_filter(
+	XdkDisplay * self,
+	XdkEventFilter filter,
+	gpointer user_data);
 
 XdkScreen * xdk_display_get_default_screen(XdkDisplay * self);
 

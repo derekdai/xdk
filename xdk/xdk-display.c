@@ -6,7 +6,11 @@
 
 #define XDK_DISPLAY_SOURCE(o) ((XdkDisplaySource *) (o))
 
+#define XDK_EVENT_FILTER_NODE(o) ((XdkEventFilterNode *) (o))
+
 typedef struct _XdkDisplaySource XdkDisplaySource;
+
+typedef struct _XdkEventFilterNode XdkEventFilterNode;
 
 struct _XdkDisplayPrivate
 {
@@ -26,7 +30,7 @@ struct _XdkDisplayPrivate
 	
 	guint event_watch_id;
 	
-	XdkEventFilter filter;
+	GList * event_filters;
 };
 
 struct _XdkDisplaySource
@@ -34,6 +38,13 @@ struct _XdkDisplaySource
 	GSource base;
 	
 	XdkDisplay * display;
+};
+
+struct _XdkEventFilterNode
+{
+	XdkEventFilter filter;
+	
+	gpointer user_data;
 };
 
 enum {
@@ -49,6 +60,12 @@ static void xdk_display_finalize(GObject * object);
 static void xdk_display_error(
 	XdkDisplay * self,
 	XErrorEvent * error);
+	
+static XdkEventFilterNode * xdk_event_filter_node_dup(XdkEventFilterNode * self);
+
+static void xdk_event_filter_node_free(XdkEventFilterNode * self);
+
+static gint xdk_event_filter_node_compare(gconstpointer a, gconstpointer b);
 
 GQuark XDK_ATOM_WM_DELETE_WINDOW = 0;
 
@@ -107,7 +124,7 @@ static void xdk_display_init(XdkDisplay * self)
 	self->priv = priv;
 
 	gboolean result = FALSE;
-	priv->peer = XOpenDisplay(NULL);
+	priv->peer = XOpenDisplay(g_getenv("DISPLAY"));
 	if(! priv->peer) {
 		g_error("Failed to initialize display");
 	}
@@ -147,7 +164,10 @@ static void xdk_display_init(XdkDisplay * self)
 		GUINT_TO_POINTER(atom));
 		
 	if(g_getenv("XDK_DUMP_EVENT")) {
-		xdk_display_set_event_filter(self, (XdkEventFilter) xdk_display_dump_event);
+		xdk_display_add_event_filter(
+			self,
+			(XdkEventFilter) xdk_display_dump_event,
+			NULL);
 	}
 }
 
@@ -227,6 +247,11 @@ void xdk_display_flush(XdkDisplay * self)
 	g_return_if_fail(self);
 	
 	XFlush(self->priv->peer);
+}
+
+void xdk_flush()
+{
+	xdk_display_flush(xdk_display_get_default());
 }
 
 const char * xdk_display_get_vendor(XdkDisplay * self)
@@ -363,9 +388,13 @@ static void xdk_display_dispatch_event(XdkDisplay * self)
 	XEvent event;
 	XdkDisplayPrivate * priv = self->priv;
 	XNextEvent(priv->peer, & event);
-	if(priv->filter && ! priv->filter(self, & event)) {
-		g_debug("xdk_display_dispatch_event: event %d filtered", event.type);
-		return;
+	GList * node = g_list_last(priv->event_filters);
+	while(node) {
+		XdkEventFilterNode * filter_node = XDK_EVENT_FILTER_NODE(node->data);
+		if(! filter_node->filter(self, & event, filter_node->user_data)) {
+			return;
+		}
+		node = g_list_previous(node);
 	}
 	
 	XdkWindow * window = xdk_display_lookup_window(
@@ -477,14 +506,55 @@ GSource * xdk_display_watch_source_new(XdkDisplay * self)
 	return source;
 }
 
-XdkEventFilter xdk_display_set_event_filter(XdkDisplay * self, XdkEventFilter filter)
+void xdk_display_add_event_filter(
+	XdkDisplay * self,
+	XdkEventFilter filter,
+	gpointer user_data)
 {
-	g_return_val_if_fail(self, NULL);
+	g_return_if_fail(filter);
 	
-	XdkEventFilter old = self->priv->filter;
-	self->priv->filter = filter;
+	if(NULL == self) {
+		self = xdk_display_get_default();
+	}
 	
-	return old;
+	XdkDisplayPrivate * priv = self->priv;
+	XdkEventFilterNode node = {
+		.filter = filter,
+		.user_data = user_data
+	};
+	if(g_list_find_custom(priv->event_filters, & node, xdk_event_filter_node_compare)) {
+		return;
+	}
+
+	priv->event_filters = g_list_prepend(priv->event_filters, xdk_event_filter_node_dup(& node));
+}
+
+void xdk_display_remove_event_filter(
+	XdkDisplay * self,
+	XdkEventFilter filter,
+	gpointer user_data)
+{
+	g_return_if_fail(filter);
+	
+	if(NULL == self) {
+		self = xdk_display_get_default();
+	}
+	
+	XdkDisplayPrivate * priv = self->priv;
+	XdkEventFilterNode filter_node = {
+		.filter = filter,
+		.user_data = user_data
+	};
+	GList * node = g_list_find_custom(
+		priv->event_filters,
+		& filter_node,
+		xdk_event_filter_node_compare);
+	if(! node) {
+		return;
+	}
+	
+	xdk_event_filter_node_free(node->data);
+	priv->event_filters = g_list_delete_link(priv->event_filters, node);
 }
 
 GList * xdk_display_list_screen(XdkDisplay * self)
@@ -535,4 +605,28 @@ GList * xdk_display_list_xwindows(XdkDisplay * self)
 	g_return_val_if_fail(self, NULL);
 	
 	return g_hash_table_get_keys(self->priv->windows);
+}
+
+static XdkEventFilterNode * xdk_event_filter_node_dup(XdkEventFilterNode * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return g_slice_dup(XdkEventFilterNode, self);
+}
+
+static void xdk_event_filter_node_free(XdkEventFilterNode * self)
+{
+	g_return_if_fail(self);
+	
+	g_slice_free(XdkEventFilterNode, self);
+}
+
+static gint xdk_event_filter_node_compare(gconstpointer a, gconstpointer b)
+{
+	gint result = XDK_EVENT_FILTER_NODE(a)->filter - XDK_EVENT_FILTER_NODE(b)->filter;
+	if(result) {
+		return result;
+	}
+	
+	return XDK_EVENT_FILTER_NODE(a)->user_data - XDK_EVENT_FILTER_NODE(b)->user_data;
 }
