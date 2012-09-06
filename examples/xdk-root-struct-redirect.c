@@ -4,6 +4,8 @@ gboolean on_event(XdkWindow * window, XEvent * event)
 {
 	gboolean result = TRUE;
 	
+	XdkDisplay * display = xdk_display_get_default();
+	
 	switch(event->type) {
 	case XDK_EVENT_CONFIGURE_REQUEST: {
 		XConfigureRequestEvent * e = (XConfigureRequestEvent *) event;
@@ -17,28 +19,21 @@ gboolean on_event(XdkWindow * window, XEvent * event)
 			.stack_mode = e->detail
 		};
 		XConfigureWindow(
-			xdk_display_get_peer(xdk_display_get_default()),
+			xdk_display_get_peer(display),
 			e->window,
 			e->value_mask,
 			& change);
-		XMapWindow(
-			xdk_display_get_peer(xdk_display_get_default()),
-			e->window);
 		result = FALSE;
 		break;
 		}
 	case XDK_EVENT_MAP_REQUEST: {
 		XMapRequestEvent * e = (XMapRequestEvent *) event;
 		XMapWindow(
-			xdk_display_get_peer(xdk_display_get_default()),
+			xdk_display_get_peer(display),
 			e->window);
 		result = FALSE;
 		break;
 		}
-	}
-	
-	if(! result) {
-		xdk_flush();
 	}
 	
 	return result;
