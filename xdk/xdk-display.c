@@ -383,7 +383,9 @@ static gboolean xdk_display_source_prepare(GSource * source, gint * timeout)
 {
 	* timeout = -1;
 	
-	return FALSE;
+	XdkDisplayPrivate * priv = XDK_DISPLAY_SOURCE(source)->display->priv;
+	
+	return XPending(priv->peer);
 }
 
 static gboolean xdk_display_source_check(GSource * source)
