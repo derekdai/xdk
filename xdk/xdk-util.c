@@ -1,4 +1,5 @@
 #include "xdk-util.h"
+#include "xdk-display.h"
 
 typedef void (* XEventToStringFunc)(XEvent * event, gchar * buf, gsize buf_size);
 
@@ -307,7 +308,12 @@ static void colormap_event_to_string(XEvent * event, gchar * buf, gsize buf_size
 
 static void client_message_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XClientMessageEvent * e = (XClientMessageEvent *) event;
+	XdkDisplay * display = xdk_display_get_default();
+	g_snprintf(buf, buf_size,
+		"\n\tmessage_type=%s\n\tformat=%d",
+		xdk_display_atom_to_name(display, e->message_type),
+		e->format);
 }
 
 static void mapping_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
