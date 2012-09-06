@@ -8,6 +8,8 @@ G_BEGIN_DECLS
 
 #define X_TYPE_EVENT		(x_event_get_type())
 
+#define XDK_ERROR			(xdk_error_quark())
+
 typedef enum _XdkGravity XdkGravity;
 
 typedef enum _XdkWindowClasses XdkWindowClasses;
@@ -17,6 +19,8 @@ typedef enum _XdkWindowAttributeMask XdkWindowAttributeMask;
 typedef enum _XdkEventMask XdkEventMask;
 
 typedef enum _XdkEventType XdkEventType;
+
+typedef enum _XdkErrorType XdkErrorType;
 
 enum _XdkGravity
 {
@@ -152,7 +156,37 @@ enum _XdkWindowClasses
 	XDK_WINDOW_CLASSES_INPUT_OUTPUT		= InputOutput
 };
 
+enum _XdkErrorType
+{
+	XDK_ERROR_SUCCESS				= Success,
+	XDK_ERROR_REQUEST				= BadRequest,
+	XDK_ERROR_VALUE					= BadValue,
+	XDK_ERROR_WINDOW				= BadWindow,
+	XDK_ERROR_PIXMAP				= BadPixmap,
+	XDK_ERROR_ATOM					= BadAtom,
+	XDK_ERROR_CUSOR					= BadCursor,
+	XDK_ERROR_FONT					= BadFont,
+	XDK_ERROR_MATCH					= BadMatch,
+	XDK_ERROR_DRAWABLE				= BadDrawable,
+	XDK_ERROR_ACCESS				= BadAccess,
+	XDK_ERROR_ALLOC					= BadAlloc,
+	XDK_ERROR_COLOR					= BadColor,
+	XDK_ERROR_GC					= BadGC,
+	XDK_ERROR_ID_CHOICE				= BadIDChoice,
+	XDK_ERROR_NAME					= BadName,
+	XDK_ERROR_LENGTH				= BadLength,
+	XDK_ERROR_IMPLEMENTAION			= BadImplementation,
+	XDK_ERROR_FIRST_EXTENSION_ERROR = FirstExtensionError,
+	XDK_ERROR_LAST_EXTENSION_ERROR	= LastExtensionError,
+};
+
 GType x_event_get_type();
+
+GQuark xdk_error_quark();
+
+const char * xdk_error_type_to_string(XdkErrorType type);
+
+GError * xdk_error_new(XErrorEvent * error);
 
 G_END_DECLS
 

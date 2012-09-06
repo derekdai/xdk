@@ -115,6 +115,10 @@ XdkScreen * xdk_get_default_screen();
 
 XdkWindow * xdk_get_default_root_window();
 
+void xdk_trap_error();
+
+gint xdk_untrap_error();
+
 G_END_DECLS
 
 #endif /* __XDK_DISPLAY_H_ */

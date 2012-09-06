@@ -48,7 +48,6 @@ struct _XdkEventFilterNode
 };
 
 enum {
-	SIGNAL_ERROR = 0,
 	SIGNAL_DISCONNECT,
 	SIGNAL_MAX,
 };
@@ -57,9 +56,7 @@ static void xdk_display_dispose(GObject * object);
 
 static void xdk_display_finalize(GObject * object);
 
-static void xdk_display_error(
-	XdkDisplay * self,
-	XErrorEvent * error);
+static int xdk_display_on_error(Display * display, XErrorEvent * error);
 	
 static XdkEventFilterNode * xdk_event_filter_node_dup(XdkEventFilterNode * self);
 
@@ -67,13 +64,17 @@ static void xdk_event_filter_node_free(XdkEventFilterNode * self);
 
 static gint xdk_event_filter_node_compare(gconstpointer a, gconstpointer b);
 
+static gboolean xdk_display_dump_event(Display * display, XEvent * event);
+
 GQuark XDK_ATOM_WM_DELETE_WINDOW = 0;
 
 G_DEFINE_TYPE(XdkDisplay, xdk_display, G_TYPE_OBJECT);
 
 static guint signals[SIGNAL_MAX] = { 0, };
 
-static XdkDisplay * default_display = NULL;
+static XdkDisplay * xdk_default_display = NULL;
+
+static GError * xdk_last_error = NULL;
 
 void xdk_display_class_init(XdkDisplayClass * clazz)
 {
@@ -82,16 +83,6 @@ void xdk_display_class_init(XdkDisplayClass * clazz)
 	gobject_clazz->finalize = xdk_display_finalize;
 	
 	GType type = G_TYPE_FROM_CLASS(clazz);
-	signals[SIGNAL_ERROR] = g_signal_new(
-		"error",
-		type,
-		G_SIGNAL_RUN_FIRST,
-		0,
-		NULL, NULL,
-		g_cclosure_marshal_VOID__POINTER,
-		G_TYPE_NONE,
-		1, G_TYPE_POINTER);
-		
 	signals[SIGNAL_DISCONNECT] = g_signal_new(
 		"disconnect",
 		type,
@@ -104,18 +95,6 @@ void xdk_display_class_init(XdkDisplayClass * clazz)
 	g_type_class_add_private(clazz, sizeof(XdkDisplayPrivate));
 	
 	XDK_ATOM_WM_DELETE_WINDOW = g_quark_from_static_string("WM_DELETE_WINDOW");
-}
-
-static int on_x_error(Display * display, XErrorEvent * error)
-{
-	g_error("Error");
-}
-
-static gboolean xdk_display_dump_event(Display * display, XEvent * event)
-{
-	xdk_util_event_dump(event);
-	
-	return TRUE;
 }
 
 static void xdk_display_init(XdkDisplay * self)
@@ -136,7 +115,7 @@ static void xdk_display_init(XdkDisplay * self)
 	priv->windows = g_hash_table_new(g_direct_hash, g_direct_equal);
 	
 	// display ready to expose to outside world
-	default_display = self;
+	xdk_default_display = self;
 
 	int i;
 	for(i = 0; i < priv->n_screens; i ++) {
@@ -154,8 +133,6 @@ static void xdk_display_init(XdkDisplay * self)
 			self,
 			xdk_screen_get_root_window(priv->screens[i]));
 	}
-	
-	XSetErrorHandler(on_x_error);
 	
 	Atom atom = XInternAtom(priv->peer, "WM_DELETE_WINDOW", FALSE);
 	g_object_set_qdata(
@@ -198,18 +175,13 @@ static void xdk_display_finalize(GObject * object)
 	G_OBJECT_CLASS(xdk_display_parent_class)->finalize(object);
 }
 
-static void xdk_display_error(XdkDisplay * self, XErrorEvent * error)
-{
-	
-}
-
 XdkDisplay * xdk_display_get_default()
 {
-	if(! default_display) {
+	if(! xdk_default_display) {
 		g_object_new(XDK_TYPE_DISPLAY, NULL);
 	}
 	
-	return default_display;
+	return xdk_default_display;
 }
 
 Display * xdk_display_get_peer(XdkDisplay * self)
@@ -629,4 +601,41 @@ static gint xdk_event_filter_node_compare(gconstpointer a, gconstpointer b)
 	}
 	
 	return XDK_EVENT_FILTER_NODE(a)->user_data - XDK_EVENT_FILTER_NODE(b)->user_data;
+}
+
+static gboolean xdk_display_dump_event(Display * display, XEvent * event)
+{
+	xdk_util_event_dump(event);
+	
+	return TRUE;
+}
+
+static int xdk_display_on_error(Display * display, XErrorEvent * error)
+{
+	g_return_val_if_fail(! xdk_last_error, 0);
+
+	xdk_last_error = xdk_error_new(error);
+	
+	return 1;
+}
+
+void xdk_trap_error()
+{
+	XSetErrorHandler(xdk_display_on_error);
+}
+
+gint xdk_untrap_error(GError ** error)
+{
+	XdkDisplay * display = xdk_display_get_default();
+	XSync(xdk_display_get_peer(display), FALSE);
+	XSetErrorHandler(NULL);
+	
+	gint error_code = XDK_ERROR_SUCCESS;
+	if(xdk_last_error) {
+		error_code = xdk_last_error->code;
+		g_propagate_error(error, xdk_last_error);
+		xdk_last_error = NULL;
+	}
+	
+	return error_code;
 }
