@@ -245,7 +245,29 @@ static void resize_request_event_to_string(XEvent * event, gchar * buf, gsize bu
 
 static void configure_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XConfigureRequestEvent * e = (XConfigureRequestEvent *) event;
+	gint len = g_snprintf(buf, buf_size, "\n\tchild=%lu", e->window);
+	if(e->value_mask & CWX) {
+		gint len = g_snprintf(buf + len, buf_size - len, "\n\tx=%d", e->x);
+	}
+	if(e->value_mask & CWY) {
+		len += g_snprintf(buf + len, buf_size - len, "\n\ty=%d", e->y);
+	}
+	if(e->value_mask & CWWidth) {
+		len += g_snprintf(buf + len, buf_size - len, "\n\twidth=%d", e->width);
+	}
+	if(e->value_mask & CWHeight) {
+		len += g_snprintf(buf + len, buf_size - len, "\n\theight=%d", e->height);
+	}
+	if(e->value_mask & CWBorderWidth) {
+		len += g_snprintf(buf + len, buf_size - len, "\n\tborder_width=%d", e->border_width);
+	}
+	if(e->value_mask & CWSibling) {
+		len += g_snprintf(buf + len, buf_size - len, "\n\tabove=%lu", e->above);
+	}
+	if(e->value_mask & CWStackMode) {
+		len += g_snprintf(buf + len, buf_size - len, "\n\tdetail=0x%x", e->detail);
+	}
 }
 
 static void circulate_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
