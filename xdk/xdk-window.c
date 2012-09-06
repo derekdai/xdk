@@ -104,6 +104,24 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		g_cclosure_marshal_VOID__VOID,
 		G_TYPE_NONE, 0);
 
+	signals[XDK_EVENT_DESTROY] = g_signal_new(
+		"destroy-notify",
+		type,
+		G_SIGNAL_RUN_LAST,
+		0,
+		NULL, NULL,
+		g_cclosure_marshal_VOID__BOXED,
+		G_TYPE_NONE, 1, X_TYPE_EVENT);
+
+	signals[XDK_EVENT_CREATE] = g_signal_new(
+		"create-notify",
+		type,
+		G_SIGNAL_RUN_LAST,
+		0,
+		NULL, NULL,
+		g_cclosure_marshal_VOID__BOXED,
+		G_TYPE_NONE, 1, X_TYPE_EVENT);
+
 	signals[XDK_EVENT_REPARENT] = g_signal_new(
 		"reparent-notify",
 		type,
@@ -385,7 +403,7 @@ static void xdk_window_default_realize(XdkWindow * self)
 	};
 	Window peer = xdk_window_create_window(
 		self,
-		xdk_window_get_parent(self),
+		priv->parent ? priv->parent : xdk_screen_get_root_window(priv->screen),
 		XDK_WINDOW_CLASSES_INPUT_OUTPUT,
 		XDK_ATTR_MASK_BACKGROUND_COLOR | XDK_ATTR_MASK_WIN_GRAVITY |
 			XDK_ATTR_MASK_EVENT_MASK,
@@ -553,8 +571,15 @@ void xdk_window_destroy(XdkWindow * self)
 {
 	g_return_if_fail(self);
 	
-	if(! self->priv->own_peer) {
+	XdkWindowPrivate * priv = self->priv;
+	if(! priv->own_peer) {
 		return;
+	}
+	
+	g_list_foreach(priv->children, (GFunc) xdk_window_destroy, NULL);
+	
+	if(priv->parent) {
+		xdk_window_remove_child(priv->parent, self);
 	}
 	
 	xdk_window_unmap(self);
@@ -666,39 +691,54 @@ void xdk_window_set_parent(XdkWindow * self, XdkWindow * parent)
 {
 	g_return_if_fail(self);
 	
-	self->priv->parent = parent;
+	XdkWindowPrivate * priv = self->priv;
+	if(priv->parent == parent) {
+		return;
+	}
+	
+	if(priv->parent) {
+		xdk_window_remove_child(priv->parent, self);
+	}
+	
+	priv->parent = parent;
+	if(! priv->parent) {
+		xdk_window_unmap(self);
+		return;
+	}
+	
+	xdk_window_realize(priv->parent);
+	/*XReparentWindow(
+		xdk_display_get_peer(priv->display),
+		priv->peer,
+		xdk_window_get_peer(priv->parent),
+		priv->x, priv->y);*/
 }
 
 XdkWindow * xdk_window_get_parent(XdkWindow * self)
 {
 	g_return_val_if_fail(self, NULL);
 	
-	XdkWindowPrivate * priv = self->priv;
-	if(! priv->parent) {
-		xdk_window_set_parent(self, xdk_screen_get_root_window(priv->screen));
-	}
-	
-	return priv->parent;
+	return self->priv->parent;
 }
 
 void xdk_window_set_background_color(XdkWindow * self, gulong background_color)
 {
+	g_message("%x", background_color);
+	
 	if(background_color == self->priv->background_color) {
 		return;
 	}
 	
-	self->priv->background_color = background_color;
+	XdkWindowPrivate * priv = self->priv;
+	priv->background_color = background_color;
 	if(! xdk_window_is_realized(self)) {
 		return;
 	}
 	
-	XSetWindowAttributes attributes = {
-		.background_pixel = background_color,
-	};
-	xdk_window_set_attributes(
-		self,
-		XDK_ATTR_MASK_BACKGROUND_COLOR,
-		& attributes);
+	XSetWindowBackground(
+		xdk_display_get_peer(priv->display),
+		priv->peer,
+		background_color);
 }
 
 gulong xdk_window_get_background_color(XdkWindow * self)
@@ -708,28 +748,39 @@ gulong xdk_window_get_background_color(XdkWindow * self)
 	return self->priv->background_color;
 }
 
-void xdk_window_event_set_mask(XdkWindow * self, XdkEventMask event_mask)
+static void xdk_window_event_mask_update(XdkWindow * self, XdkEventMask event_mask)
+{
+	XSetWindowAttributes attributes = {
+		.event_mask = event_mask
+	};
+	xdk_window_set_attributes(self, XDK_ATTR_MASK_EVENT_MASK, & attributes);
+}
+
+void xdk_window_event_mask_set(XdkWindow * self, XdkEventMask event_mask)
 {
 	g_return_if_fail(self);
 	
 	self->priv->event_mask = event_mask;
+	xdk_window_event_mask_update(self, self->priv->event_mask);
 }
 
-void xdk_window_event_add_mask(XdkWindow * self, XdkEventMask event_mask)
+void xdk_window_event_mask_add(XdkWindow * self, XdkEventMask event_mask)
 {
 	g_return_if_fail(self);
 	
 	self->priv->event_mask |= event_mask;
+	xdk_window_event_mask_update(self, self->priv->event_mask);
 }
 
-void xdk_window_event_remove_mask(XdkWindow * self, XdkEventMask event_mask)
+void xdk_window_event_mask_remove(XdkWindow * self, XdkEventMask event_mask)
 {
 	g_return_if_fail(self);
 	
 	self->priv->event_mask &= ~event_mask;
+	xdk_window_event_mask_update(self, self->priv->event_mask);
 }
 
-gulong xdk_window_event_get_mask(XdkWindow * self)
+gulong xdk_window_event_mask_get(XdkWindow * self)
 {
 	g_return_val_if_fail(self, 0);
 	
@@ -863,7 +914,7 @@ void xdk_window_add_child(XdkWindow * self, XdkWindow * child)
 	}
 	
 	XdkWindowPrivate * priv = self->priv;
-	priv->children = g_list_append(priv->children, g_object_ref(child));
+	priv->children = g_list_prepend(priv->children, g_object_ref(child));
 	xdk_window_set_parent(child, self);
 }
 

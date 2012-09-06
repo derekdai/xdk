@@ -142,13 +142,13 @@ void xdk_window_set_background_color(XdkWindow * self, gulong background_color);
 
 gulong xdk_window_get_background_color(XdkWindow * self);
 
-void xdk_window_event_set_mask(XdkWindow * self, XdkEventMask event_mask);
+void xdk_window_event_mask_set(XdkWindow * self, XdkEventMask event_mask);
 
-void xdk_window_event_add_mask(XdkWindow * self, XdkEventMask event_mask);
+void xdk_window_event_mask_add(XdkWindow * self, XdkEventMask event_mask);
 
-void xdk_window_event_remove_mask(XdkWindow * self, XdkEventMask event_mask);
+void xdk_window_event_mask_remove(XdkWindow * self, XdkEventMask event_mask);
 
-gulong xdk_window_event_get_mask(XdkWindow * self);
+gulong xdk_window_event_mask_get(XdkWindow * self);
 
 void xdk_window_set_wm_protocols(XdkWindow * self, Atom * protocols, gint n_protocols);
 

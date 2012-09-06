@@ -68,7 +68,7 @@ static void my_button_init(MyButton * self)
 {
 	self->pressed = FALSE;
 	self->entered = FALSE;
-	xdk_window_event_set_mask(
+	xdk_window_event_mask_set(
 		XDK_WINDOW(self),
 		XDK_EVENT_MASK_STRUCTURE_NOTIFY |
 		XDK_EVENT_MASK_BUTTON_PRESS | XDK_EVENT_MASK_BUTTON_RELEASE |
