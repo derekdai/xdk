@@ -168,6 +168,8 @@ void xdk_window_all(XdkWindow * self);
 
 void xdk_window_hide(XdkWindow * self);
 
+void xdk_window_select_input(XdkWindow * self, XdkEventMask event_mask);
+
 G_END_DECLS
 
 #endif /* __XDK_WINDOW_H_ */

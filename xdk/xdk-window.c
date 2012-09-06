@@ -46,7 +46,8 @@ struct _XdkWindowPrivate
 };
 
 enum {
-	XDK_WINDOW_DELETE_EVENT = XDK_EVENT_LAST,
+	XDK_WINDOW_EVENT_FILTER = XDK_EVENT_LAST,
+	XDK_WINDOW_DELETE_EVENT,
 	XDK_WINDOW_DESTROY,
 	SIGNAL_MAX,
 };
@@ -68,6 +69,12 @@ static void xdk_window_handle_map_notify(XdkWindow * self, XEvent * event);
 static void xdk_window_handle_unmap_notify(XdkWindow * self, XEvent * event);
 
 static void xdk_window_handle_gravity_notify(XdkWindow * self, XEvent * event);
+
+static gboolean xdk_window_event_filter(
+	GSignalInvocationHint * ihint,
+	GValue * return_accu,
+	const GValue * handler_return,
+	gpointer user_data);
 
 G_DEFINE_TYPE(XdkWindow, xdk_window, G_TYPE_OBJECT);
 
@@ -92,7 +99,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_LAST,
 		G_STRUCT_OFFSET(XdkWindowClass, delete_event),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_WINDOW_DESTROY] = g_signal_new(
@@ -101,7 +108,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_LAST,
 		G_STRUCT_OFFSET(XdkWindowClass, destroy),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__VOID,
+		NULL,
 		G_TYPE_NONE, 0);
 
 	signals[XDK_EVENT_DESTROY] = g_signal_new(
@@ -110,7 +117,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_LAST,
 		0,
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 
 	signals[XDK_EVENT_CREATE] = g_signal_new(
@@ -119,7 +126,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_LAST,
 		0,
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 
 	signals[XDK_EVENT_REPARENT] = g_signal_new(
@@ -128,7 +135,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_FIRST,
 		0,
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_CONFIGURE] = g_signal_new(
@@ -137,7 +144,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_FIRST,
 		G_STRUCT_OFFSET(XdkWindowClass, configure_notify),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_MAP] = g_signal_new(
@@ -146,7 +153,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_FIRST,
 		G_STRUCT_OFFSET(XdkWindowClass, map_notify),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_UNMAP] = g_signal_new(
@@ -155,7 +162,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_FIRST,
 		G_STRUCT_OFFSET(XdkWindowClass, map_notify),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_GRAVITY] = g_signal_new(
@@ -164,7 +171,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_FIRST,
 		G_STRUCT_OFFSET(XdkWindowClass, gravity_notify),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_KEY_PRESS] = g_signal_new(
@@ -173,7 +180,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_LAST,
 		G_STRUCT_OFFSET(XdkWindowClass, key_press),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_KEY_RELEASE] = g_signal_new(
@@ -182,7 +189,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_LAST,
 		G_STRUCT_OFFSET(XdkWindowClass, key_release),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_BUTTON_PRESS] = g_signal_new(
@@ -191,7 +198,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_LAST,
 		G_STRUCT_OFFSET(XdkWindowClass, button_press),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_BUTTON_RELEASE] = g_signal_new(
@@ -200,7 +207,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_LAST,
 		G_STRUCT_OFFSET(XdkWindowClass, button_release),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_MOTION] = g_signal_new(
@@ -209,7 +216,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_LAST,
 		G_STRUCT_OFFSET(XdkWindowClass, motion),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_ENTER] = g_signal_new(
@@ -218,7 +225,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_LAST,
 		G_STRUCT_OFFSET(XdkWindowClass, enter),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_LEAVE] = g_signal_new(
@@ -227,7 +234,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_LAST,
 		G_STRUCT_OFFSET(XdkWindowClass, leave),
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_FOCUS_IN] = g_signal_new(
@@ -236,7 +243,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_FIRST,
 		0,
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_FOCUS_OUT] = g_signal_new(
@@ -245,7 +252,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_FIRST,
 		0,
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
 	signals[XDK_EVENT_EXPOSE] = g_signal_new(
@@ -254,8 +261,17 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		G_SIGNAL_RUN_FIRST,
 		0,
 		NULL, NULL,
-		g_cclosure_marshal_VOID__BOXED,
+		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
+	
+	signals[XDK_WINDOW_EVENT_FILTER] = g_signal_new(
+		"event-filter",
+		type,
+		G_SIGNAL_RUN_FIRST | G_SIGNAL_RUN_LAST,
+		0,
+		xdk_window_event_filter, NULL,
+		NULL,
+		G_TYPE_BOOLEAN, 1, X_TYPE_EVENT);
 	
 	/*
 	case XDK_EVENT_KEYMAP:
@@ -611,6 +627,12 @@ static void xdk_window_dispatch_client_message(XdkWindow * self, XEvent * event)
 
 void xdk_window_dispatch_event(XdkWindow * self, XEvent * event)
 {
+	gboolean retval = TRUE;
+	g_signal_emit(self, signals[XDK_WINDOW_EVENT_FILTER], 0, event, & retval);
+	if(! retval) {
+		return;
+	}
+	
 	switch(event->type) {
 	case XDK_EVENT_KEY_PRESS:
 	case XDK_EVENT_KEY_RELEASE:
@@ -947,4 +969,25 @@ GList * xdk_window_list_children(XdkWindow * self)
 	g_return_val_if_fail(self, NULL);
 
 	return g_list_copy(self->priv->children);
+}
+
+static gboolean xdk_window_event_filter(
+	GSignalInvocationHint * ihint,
+	GValue * return_accu,
+	const GValue * handler_return,
+	gpointer user_data)
+{
+	return g_value_get_boolean(handler_return);
+}
+
+void xdk_window_select_input(XdkWindow * self, XdkEventMask event_mask)
+{
+	g_return_if_fail(self);
+	
+	xdk_window_realize(self);
+	
+	XSelectInput(
+		xdk_display_get_peer(self->priv->display),
+		self->priv->peer,
+		event_mask);
 }
