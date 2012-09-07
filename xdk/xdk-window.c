@@ -628,8 +628,6 @@ static void xdk_window_dispatch_client_message(XdkWindow * self, XEvent * event)
 
 void xdk_window_dispatch_event(XdkWindow * self, XEvent * event)
 {
-	g_message("Bla");
-	
 	gboolean retval = FALSE;
 	g_signal_emit(self, signals[XDK_WINDOW_EVENT_FILTER], 0, event, & retval);
 	if(retval) {
