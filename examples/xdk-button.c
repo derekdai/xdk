@@ -128,6 +128,7 @@ int main(int argc, char * args[])
 	
 	XdkWindow * button = my_button_new();
 	xdk_window_set_size(button, 320, 240);
+	g_signal_connect(button, "delete-event", G_CALLBACK(xdk_window_destroy), NULL);
 	g_signal_connect(button, "destroy", G_CALLBACK(on_quit), NULL);
 	g_signal_connect(button, "clicked", G_CALLBACK(on_quit), NULL);
 	xdk_window_show(button);

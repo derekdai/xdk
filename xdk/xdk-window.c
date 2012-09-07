@@ -94,7 +94,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 	
 	GType type = G_TYPE_FROM_CLASS(clazz);
 	signals[XDK_WINDOW_DELETE_EVENT] = g_signal_new(
-		"delete",
+		"delete-event",
 		type,
 		G_SIGNAL_RUN_LAST,
 		G_STRUCT_OFFSET(XdkWindowClass, delete_event),
@@ -619,6 +619,7 @@ Atom * xdk_window_list_properties(XdkWindow * self, int * n_props)
 
 static void xdk_window_dispatch_client_message(XdkWindow * self, XEvent * event)
 {
+	g_error("%u %u", event->xclient.data.l[0], XDK_ATOM_WM_DELETE_WINDOW);
 	if(event->xclient.data.l[0] ==
 			xdk_display_atom_get(self->priv->display, XDK_ATOM_WM_DELETE_WINDOW)) {
 		g_signal_emit(self, signals[XDK_WINDOW_DELETE_EVENT], 0, event);
@@ -627,9 +628,11 @@ static void xdk_window_dispatch_client_message(XdkWindow * self, XEvent * event)
 
 void xdk_window_dispatch_event(XdkWindow * self, XEvent * event)
 {
-	gboolean retval = TRUE;
+	g_message("Bla");
+	
+	gboolean retval = FALSE;
 	g_signal_emit(self, signals[XDK_WINDOW_EVENT_FILTER], 0, event, & retval);
-	if(! retval) {
+	if(retval) {
 		return;
 	}
 	
@@ -782,8 +785,12 @@ void xdk_window_event_mask_set(XdkWindow * self, XdkEventMask event_mask)
 {
 	g_return_if_fail(self);
 	
-	self->priv->event_mask = event_mask;
-	xdk_window_event_mask_update(self, self->priv->event_mask);
+	XdkWindowPrivate * priv = self->priv;
+	priv->event_mask = event_mask;
+	
+	if(xdk_window_is_realized(self)) {
+		xdk_window_event_mask_update(self, priv->event_mask);
+	}
 }
 
 void xdk_window_event_mask_add(XdkWindow * self, XdkEventMask event_mask)

@@ -1,8 +1,21 @@
 #include <xdk/xdk.h>
 
+XdkWindow * get_window(Window xid)
+{
+	XdkDisplay * display = xdk_display_get_default();
+	XdkWindow * win = xdk_display_lookup_window(display, xid);
+	if(! win) {
+		win = xdk_window_new();
+		xdk_window_set_foreign_peer(win, xid);
+		xdk_window_select_input(win, XDK_EVENT_MASK_STRUCTURE_NOTIFY);
+	}
+	
+	return win;
+}
+
 gboolean on_event(XdkWindow * window, XEvent * event)
 {
-	gboolean result = TRUE;
+	gboolean result = FALSE;
 	
 	XdkDisplay * display = xdk_display_get_default();
 	
@@ -23,15 +36,14 @@ gboolean on_event(XdkWindow * window, XEvent * event)
 			e->window,
 			e->value_mask,
 			& change);
-		result = FALSE;
+		result = TRUE;
 		break;
 		}
 	case XDK_EVENT_MAP_REQUEST: {
 		XMapRequestEvent * e = (XMapRequestEvent *) event;
-		XMapWindow(
-			xdk_display_get_peer(display),
-			e->window);
-		result = FALSE;
+		XdkWindow * win = get_window(e->window);
+		xdk_window_map(win);
+		result = TRUE;
 		break;
 		}
 	}
