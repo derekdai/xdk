@@ -264,6 +264,42 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
+	signals[XDK_EVENT_CONFIGURE_REQUEST] = g_signal_new(
+		"configure-request",
+		type,
+		G_SIGNAL_RUN_FIRST,
+		0,
+		NULL, NULL,
+		NULL,
+		G_TYPE_NONE, 1, X_TYPE_EVENT);
+	
+	signals[XDK_EVENT_MAP_REQUEST] = g_signal_new(
+		"map-request",
+		type,
+		G_SIGNAL_RUN_FIRST,
+		0,
+		NULL, NULL,
+		NULL,
+		G_TYPE_NONE, 1, X_TYPE_EVENT);
+	
+	signals[XDK_EVENT_RESIZE_REQUEST] = g_signal_new(
+		"resize-request",
+		type,
+		G_SIGNAL_RUN_FIRST,
+		0,
+		NULL, NULL,
+		NULL,
+		G_TYPE_NONE, 1, X_TYPE_EVENT);
+	
+	signals[XDK_EVENT_CIRCULATE_REQUEST] = g_signal_new(
+		"circulate-request",
+		type,
+		G_SIGNAL_RUN_FIRST,
+		0,
+		NULL, NULL,
+		NULL,
+		G_TYPE_NONE, 1, X_TYPE_EVENT);
+	
 	signals[XDK_WINDOW_EVENT_FILTER] = g_signal_new(
 		"event-filter",
 		type,
@@ -278,11 +314,7 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 	case XDK_EVENT_GRAPHICS_EXPOSE:
 	case XDK_EVENT_NO_EXPOSE:
 	case XDK_EVENT_VISIBILITY:
-	case XDK_EVENT_MAP_REQUEST:
-	case XDK_EVENT_CONFIGURE_REQUEST:
-	case XDK_EVENT_RESIZE_REQUEST:
 	case XDK_EVENT_CIRCULATE:
-	case XDK_EVENT_CIRCULATE_REQUEST:
 	case XDK_EVENT_PROPERTY:
 	case XDK_EVENT_SELECTION_CLEAR:
 	case XDK_EVENT_SELECTION_REQUEST:
@@ -339,6 +371,9 @@ static void _xdk_window_set_peer(XdkWindow * self, Window peer, gboolean own_pee
 	
 	if(None != peer) {
 		xdk_display_add_window(priv->display, self);
+	}
+	else {
+		xdk_display_remove_window(priv->display, self);
 	}
 }
 
