@@ -514,6 +514,34 @@ void xdk_window_set_position(XdkWindow * self, int x, int y)
 		x, y);
 }
 
+int xdk_window_get_x(XdkWindow * self)
+{
+	g_return_val_if_fail(self, 0);
+	
+	return self->priv->x;
+}
+
+void xdk_window_set_x(XdkWindow * self, int x)
+{
+	g_return_if_fail(self);
+	
+	xdk_window_set_position(self, x, self->priv->y);
+}
+
+int xdk_window_get_y(XdkWindow * self)
+{
+	g_return_val_if_fail(self, 0);
+	
+	return self->priv->y;
+}
+
+void xdk_window_set_y(XdkWindow * self, int y)
+{
+	g_return_if_fail(self);
+	
+	xdk_window_set_position(self, self->priv->x, y);
+}
+
 void xdk_window_get_size(XdkWindow * self, guint * width, guint * height)
 {
 	g_return_if_fail(self);
@@ -542,6 +570,34 @@ void xdk_window_set_size(XdkWindow * self, guint width, guint height)
 	XResizeWindow(
 		xdk_display_get_peer(priv->display), priv->peer,
 		width, height);
+}
+
+guint xdk_window_get_width(XdkWindow * self)
+{
+	g_return_val_if_fail(self, 0);
+	
+	return self->priv->width;
+}
+
+void xdk_window_set_width(XdkWindow * self, guint width)
+{
+	g_return_if_fail(self);
+	
+	xdk_window_set_size(self, width, self->priv->height);
+}
+
+guint xdk_window_get_height(XdkWindow * self)
+{
+	g_return_val_if_fail(self, 0);
+	
+	return self->priv->height;
+}
+
+void xdk_window_set_height(XdkWindow * self, guint height)
+{
+	g_return_if_fail(self);
+	
+	xdk_window_set_size(self, self->priv->width, height);
 }
 
 void xdk_window_map(XdkWindow * self)

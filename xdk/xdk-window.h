@@ -94,9 +94,25 @@ XdkScreen * xdk_window_get_screen(XdkWindow * self);
 
 void xdk_window_set_screen(XdkWindow * self, XdkScreen * screen);
 
-void xdk_window_get_position(XdkWindow * self, int * x, int * y);
+gint xdk_window_get_x(XdkWindow * self);
 
-void xdk_window_set_position(XdkWindow * self, int x, int y);
+void xdk_window_set_x(XdkWindow * self, gint x);
+
+gint xdk_window_get_y(XdkWindow * self);
+
+void xdk_window_set_y(XdkWindow * self, gint y);
+
+void xdk_window_get_position(XdkWindow * self, gint * x, gint * y);
+
+void xdk_window_set_position(XdkWindow * self, gint x, gint y);
+
+guint xdk_window_get_width(XdkWindow * self);
+
+void xdk_window_set_width(XdkWindow * self, guint width);
+
+guint xdk_window_get_height(XdkWindow * self);
+
+void xdk_window_set_height(XdkWindow * self, guint height);
 
 void xdk_window_get_size(XdkWindow * self, guint * width, guint * height);
 
