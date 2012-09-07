@@ -2,7 +2,7 @@
 
 XdkWindow * root;
 
-XdkWindow * get_window(Window xid)
+XdkWindow * get_foreign_window(Window xid)
 {
 	XdkDisplay * display = xdk_display_get_default();
 	XdkWindow * win = xdk_display_lookup_window(display, xid);
@@ -53,7 +53,7 @@ void on_configure_request(XdkWindow * root, XEvent * event, XdkDisplay * display
 void on_map_request(XdkWindow * root, XEvent * event, XdkDisplay * display)
 {
 	XMapRequestEvent * e = (XMapRequestEvent *) event;
-	XdkWindow * win = get_window(e->window);
+	XdkWindow * win = get_foreign_window(e->window);
 	xdk_window_map(win);
 }
 
