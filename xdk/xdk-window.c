@@ -46,8 +46,7 @@ struct _XdkWindowPrivate
 };
 
 enum {
-	XDK_WINDOW_EVENT_FILTER = XDK_EVENT_LAST,
-	XDK_WINDOW_DELETE_EVENT,
+	XDK_WINDOW_DELETE_EVENT = XDK_EVENT_LAST,
 	XDK_WINDOW_DESTROY,
 	SIGNAL_MAX,
 };
@@ -299,15 +298,6 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		NULL, NULL,
 		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
-	
-	signals[XDK_WINDOW_EVENT_FILTER] = g_signal_new(
-		"event-filter",
-		type,
-		G_SIGNAL_RUN_FIRST | G_SIGNAL_RUN_LAST,
-		0,
-		xdk_window_event_filter, NULL,
-		NULL,
-		G_TYPE_BOOLEAN, 1, X_TYPE_EVENT);
 	
 	/*
 	case XDK_EVENT_KEYMAP:
@@ -654,7 +644,6 @@ Atom * xdk_window_list_properties(XdkWindow * self, int * n_props)
 
 static void xdk_window_dispatch_client_message(XdkWindow * self, XEvent * event)
 {
-	g_error("%u %u", event->xclient.data.l[0], XDK_ATOM_WM_DELETE_WINDOW);
 	if(event->xclient.data.l[0] ==
 			xdk_display_atom_get(self->priv->display, XDK_ATOM_WM_DELETE_WINDOW)) {
 		g_signal_emit(self, signals[XDK_WINDOW_DELETE_EVENT], 0, event);
@@ -664,10 +653,6 @@ static void xdk_window_dispatch_client_message(XdkWindow * self, XEvent * event)
 void xdk_window_dispatch_event(XdkWindow * self, XEvent * event)
 {
 	gboolean retval = FALSE;
-	g_signal_emit(self, signals[XDK_WINDOW_EVENT_FILTER], 0, event, & retval);
-	if(retval) {
-		return;
-	}
 	
 	switch(event->type) {
 	case XDK_EVENT_KEY_PRESS:
