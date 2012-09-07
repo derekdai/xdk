@@ -363,7 +363,7 @@ static void xdk_display_dispatch_event(XdkDisplay * self)
 	GList * node = g_list_last(priv->event_filters);
 	while(node) {
 		XdkEventFilterNode * filter_node = XDK_EVENT_FILTER_NODE(node->data);
-		if(! filter_node->filter(self, & event, filter_node->user_data)) {
+		if(filter_node->filter(self, & event, filter_node->user_data)) {
 			return;
 		}
 		node = g_list_previous(node);
@@ -609,7 +609,7 @@ static gboolean xdk_display_dump_event(Display * display, XEvent * event)
 {
 	xdk_util_event_dump(event);
 	
-	return TRUE;
+	return FALSE;
 }
 
 static int xdk_display_on_error(Display * display, XErrorEvent * error)
