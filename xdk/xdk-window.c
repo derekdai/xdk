@@ -356,14 +356,14 @@ static void _xdk_window_set_peer(XdkWindow * self, Window peer, gboolean own_pee
 	g_return_if_fail(self);
 
 	XdkWindowPrivate * priv = self->priv;
+	if(None != priv->peer) {
+		xdk_display_remove_window(priv->display, self);
+	}
 	priv->peer = peer;
 	priv->own_peer = own_peer;
 	
 	if(None != peer) {
 		xdk_display_add_window(priv->display, self);
-	}
-	else {
-		xdk_display_remove_window(priv->display, self);
 	}
 }
 
@@ -613,18 +613,19 @@ void xdk_window_destroy(XdkWindow * self)
 	g_return_if_fail(self);
 	
 	XdkWindowPrivate * priv = self->priv;
-	if(! priv->own_peer) {
-		return;
-	}
-	
+
 	g_list_foreach(priv->children, (GFunc) xdk_window_destroy, NULL);
-	
 	if(priv->parent) {
 		xdk_window_remove_child(priv->parent, self);
 	}
-	
-	xdk_window_unmap(self);
-	xdk_window_unrealize(self);
+
+	if(priv->own_peer) {
+		xdk_window_unmap(self);
+		xdk_window_unrealize(self);
+	}
+	else {
+		_xdk_window_set_peer(self, None, FALSE);
+	}
 	
 	self->priv->destroyed = TRUE;
 }
