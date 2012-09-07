@@ -1,5 +1,6 @@
 #include "xdk-util.h"
 #include "xdk-display.h"
+#include <X11/keysym.h>
 
 typedef void (* XEventToStringFunc)(XEvent * event, gchar * buf, gsize buf_size);
 
@@ -13,8 +14,6 @@ struct _XEventInfo
 };
 
 static XEventToStringFunc xdk_util_event_get_to_string_func(XEvent * event);
-static void key_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void button_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
 static void motion_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
 static void crossing_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
 static void focus_change_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
@@ -50,10 +49,10 @@ static char xdk_util_buf[1024];
 static const XEventInfo event_infos[] = {
 	{ "Unknown", NULL },
 	{ "Unknown", NULL },
-	{ "XDK_EVENT_KEY_PRESS (KeyPress)", key_event_to_string },
-	{ "XDK_EVENT_KEY_RELEASE (KeyRelease)", key_event_to_string },
-	{ "XDK_EVENT_BUTTON_PRESS (ButtonPress)", button_event_to_string },
-	{ "XDK_EVENT_BUTTON_RELEASE (ButtonRelease)", button_event_to_string },
+	{ "XDK_EVENT_KEY_PRESS (KeyPress)", motion_event_to_string },
+	{ "XDK_EVENT_KEY_RELEASE (KeyRelease)", motion_event_to_string },
+	{ "XDK_EVENT_BUTTON_PRESS (ButtonPress)", motion_event_to_string },
+	{ "XDK_EVENT_BUTTON_RELEASE (ButtonRelease)", motion_event_to_string },
 	{ "XDK_EVENT_MOTION (MotionNotify)", motion_event_to_string },
 	{ "XDK_EVENT_ENTER (EnterNotify)", crossing_event_to_string },
 	{ "XDK_EVENT_LEAVE (LeaveNotify)", crossing_event_to_string },
@@ -97,8 +96,9 @@ gchar * xdk_util_event_to_string(XEvent * event)
 	
 	gint len = g_snprintf(
 		xdk_util_buf, sizeof(xdk_util_buf),
-		"%s:\n\tserial=%lu\n\tsend_event=%s\n\tdisplay=%s\n\tevent=%lu",
+		"%s %d:\n\tserial=%lu\n\tsend_event=%s\n\tdisplay=%s\n\tevent=%lu",
 		xdk_util_event_get_name(event),
+		event->type,
 		event->xany.serial,
 		event->xany.send_event ? "true" : "false",
 		XDisplayString(event->xany.display),
@@ -128,19 +128,86 @@ static XEventToStringFunc xdk_util_event_get_to_string_func(XEvent * event)
 	return event_infos[event->type].to_string_func;
 }
 
-static void key_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static gint state_to_string(guint state, gchar * buf, gsize buf_size)
 {
+	typedef struct _MaskNamePair
+	{
+		guint mask;
+		const char * name;
+	} MaskNamePair;
+	static const MaskNamePair mask_name_pairs[] = {
+		{ Button1Mask,	"Button1" },
+		{ Button2Mask,	"Button2" },
+		{ Button3Mask,	"Button3" },
+		{ Button4Mask,	"Button4" },
+		{ Button5Mask,	"Button5" },
+		{ ShiftMask,	"Shift" },
+		{ LockMask,		"Lock(CapsLock)" },
+		{ ControlMask,	"Control" },
+		{ Mod1Mask,		"Mod1(Alt)" },
+		{ Mod2Mask,		"Mod2(CapsLock)" },
+		{ Mod3Mask,		"Mod3" },
+		{ Mod4Mask,		"Mod4" },
+		{ Mod5Mask,		"Mod5" },
+	};
+
+	gint len = g_snprintf(buf, buf_size, "\n\tstate=");
+
+	int i = 0;
+	for(; i < G_N_ELEMENTS(mask_name_pairs); i ++) {
+		if(state & mask_name_pairs[i].mask) {
+			len += g_snprintf(buf + len, buf_size - len, "%s ", mask_name_pairs[i].name);
+		}
+	}
 	
+	return len;
 }
 
-static void button_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static gint key_event_to_string(XKeyEvent * key_event, gchar * buf, gsize buf_size)
 {
+	KeySym keysym = XLookupKeysym(key_event, 0);
+	if(NoSymbol == keysym) {
+		return 0;
+	}
 	
+	return g_snprintf(buf, buf_size, "%s", XKeysymToString(keysym));
 }
 
 static void motion_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XButtonEvent * e = (XButtonEvent *) event;
+	gint len = g_snprintf(buf, buf_size,
+		"\n\troot=%lu\n\tsubwindow=%lu\n\ttime=%lu\n\tx=%d, y=%d\n\tx_root=%d, y_root=%d\n\tsame_screen=%s",
+		e->root,
+		e->subwindow,
+		e->time,
+		e->x, e->y,
+		e->x_root, e->y_root,
+		e->same_screen ? "true" : "false");
+	len += state_to_string(e->state, buf + len, buf_size - len);
+
+	switch(event->type) {
+	case ButtonPress:
+	case ButtonRelease:
+		g_snprintf(buf + len, buf_size - len,
+			"\n\tbutton=Button%d",
+			e->button);
+		break;
+	case KeyPress:
+	case KeyRelease: {
+		XKeyEvent * ke = (XKeyEvent *) event;
+		g_snprintf(buf + len, buf_size - len,
+			"\n\tkeycode=0x%x (%s)",
+			ke->keycode,
+			key_event_to_string(ke, buf + len, buf_size - len));
+		break;
+		}
+	case MotionNotify:
+		g_snprintf(buf + len, buf_size - len,
+			"\n\tis_hint=%s",
+			(NotifyNormal == ((XMotionEvent *) e)->is_hint) ? "NotifyNormal" : "NotifyHint");
+		break;
+	}
 }
 
 static void crossing_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
@@ -283,7 +350,13 @@ static void circulate_request_event_to_string(XEvent * event, gchar * buf, gsize
 
 static void property_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XPropertyEvent * e = (XPropertyEvent *) event;
+	XdkDisplay * display = xdk_display_get_default();
+	g_snprintf(buf, buf_size,
+		"\n\tatom=%s\n\ttime=%lu\n\tstate=%s",
+		xdk_display_atom_to_name(display, e->atom),
+		e->time,
+		(PropertyNewValue == e->state) ? "PropertyNewValue" : "PropertyDelete");
 }
 
 static void selection_clear_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
