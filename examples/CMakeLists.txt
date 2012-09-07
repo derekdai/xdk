@@ -42,3 +42,6 @@ include_directories( ${GTK_INCLUDE_DIRS} ${CLUTTER_INCLUDE_DIRS} )
 link_directories( ${GTK_LIBRARY_DIRS} ${CLUTTER_LIBRARY_DIRS} )
 add_executable( clutter-sync clutter-sync )
 target_link_libraries( clutter-sync ${GTK_LIBRARIES} ${CLUTTER_LIBRARIES} )
+
+add_executable( gtk-clutter-mixup gtk-clutter-mixup )
+target_link_libraries( gtk-clutter-mixup xdk ${GTK_LIBRARIES} ${CLUTTER_LIBRARIES} )
