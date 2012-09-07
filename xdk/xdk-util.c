@@ -43,6 +43,7 @@ static void mapping_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 static void generic_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
 static void error_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
 static void keymap_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
+static const char * boolean_to_string(gboolean v);
 
 static char xdk_util_buf[1024];
 
@@ -100,7 +101,7 @@ gchar * xdk_util_event_to_string(XEvent * event)
 		xdk_util_event_get_name(event),
 		event->type,
 		event->xany.serial,
-		event->xany.send_event ? "true" : "false",
+		boolean_to_string(event->xany.send_event),
 		XDisplayString(event->xany.display),
 		event->xany.window);
 		
@@ -173,7 +174,7 @@ static void motion_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 		e->time,
 		e->x, e->y,
 		e->x_root, e->y_root,
-		e->same_screen ? "true" : "false");
+		boolean_to_string(e->same_screen));
 	len += state_to_string(e->state, buf + len, buf_size - len);
 
 	switch(event->type) {
@@ -214,19 +215,33 @@ static void focus_change_event_to_string(XEvent * event, gchar * buf, gsize buf_
 
 static void expose_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XExposeEvent * e = (XExposeEvent *) event;
+	g_snprintf(buf, buf_size,
+		"\n\twindow=%lu\n\tx=%d y=%d\n\twidth=%d height=%d\n\tcount=%d",
+		e->window,
+		e->x, e->y,
+		e->width, e->height,
+		e->count);
 }
-
 
 static void graphics_expose_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XGraphicsExposeEvent * e = (XGraphicsExposeEvent *) event;
+	g_snprintf(buf, buf_size,
+		"\n\tx=%d y=%d\n\twidth=%d height=%d\n\tcount=%d\n\tmajor_code=%d minor_code=%d",
+		e->x, e->y,
+		e->width, e->height,
+		e->count,
+		e->major_code, e->minor_code);
 }
 
 
 static void no_expose_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XGraphicsExposeEvent * e = (XGraphicsExposeEvent *) event;
+	g_snprintf(buf, buf_size,
+		"\n\tmajor_code=%d minor_code=%d",
+		e->major_code, e->minor_code);
 }
 
 
@@ -235,22 +250,32 @@ static void visibility_event_to_string(XEvent * event, gchar * buf, gsize buf_si
 	
 }
 
-
 static void create_window_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XCreateWindowEvent * e = (XCreateWindowEvent *) event;
+	g_snprintf(buf, buf_size,
+		"\n\twindow=%lu\n\tx=%d y=%d\n\twidth=%d height=%d\n\tborder_width=%d\n\toverride_redirect=%s",
+		e->window,
+		e->x, e->y,
+		e->width, e->height,
+		e->border_width,
+		boolean_to_string(e->override_redirect));
 }
-
 
 static void destroy_window_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XDestroyWindowEvent * e = (XDestroyWindowEvent *) event;
+	g_snprintf(buf, buf_size,
+		"\n\twindow=%lu", e->window);
 }
-
 
 static void unmap_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XUnmapEvent * e = (XUnmapEvent *) event;
+	g_snprintf(buf, buf_size,
+		"\n\twindow=%lu\n\tfrom_configure=%s",
+		e->window,
+		boolean_to_string(e->from_configure));
 }
 
 static void map_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
@@ -259,12 +284,13 @@ static void map_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 	g_snprintf(buf, buf_size,
 		"\n\twindow=%lu\n\toverride_redirect=%s",
 		e->window,
-		e->override_redirect ? "true" : "false");
+		boolean_to_string(e->override_redirect));
 }
 
 static void map_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XMapRequestEvent * e = (XMapRequestEvent *) event;
+	g_snprintf(buf, buf_size, "\n\twindow=%lu", e->window);
 }
 
 static void reparent_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
@@ -275,7 +301,7 @@ static void reparent_event_to_string(XEvent * event, gchar * buf, gsize buf_size
 		e->window,
 		e->parent,
 		e->x, e->y,
-		e->override_redirect ? "true" : "false");
+		boolean_to_string(e->override_redirect));
 }
 
 static void configure_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
@@ -288,17 +314,21 @@ static void configure_event_to_string(XEvent * event, gchar * buf, gsize buf_siz
 		e->width, e->height,
 		e->border_width,
 		e->above,
-		e->override_redirect ? "true" : "false");
+		boolean_to_string(e->override_redirect));
 }
 
 static void gravity_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XGravityEvent * e = (XGravityEvent *) event;
+	g_snprintf(buf, buf_size,
+		"\n\twindow=%lu\n\tx=%d, y=%d", e->window, e->x, e->y);
 }
 
 static void resize_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
-	
+	XResizeRequestEvent * e = (XResizeRequestEvent *) event;
+	g_snprintf(buf, buf_size,
+		"\n\twindow=%lu\n\twidth=%d, height=%d", e->window, e->width, e->height);
 }
 
 static void configure_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
@@ -397,4 +427,9 @@ static void error_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 static void keymap_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 {
 	
+}
+
+static const char * boolean_to_string(gboolean v)
+{
+	return v ? "true" : "false";
 }
