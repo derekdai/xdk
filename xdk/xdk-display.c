@@ -66,6 +66,8 @@ static gint xdk_event_filter_node_compare(gconstpointer a, gconstpointer b);
 
 static gboolean xdk_display_dump_event(Display * display, XEvent * event);
 
+static int xdk_display_default_error_handler(Display * display, XErrorEvent * error);
+
 GQuark XDK_ATOM_WM_DELETE_WINDOW = 0;
 
 G_DEFINE_TYPE(XdkDisplay, xdk_display, G_TYPE_OBJECT);
@@ -75,6 +77,8 @@ static guint signals[SIGNAL_MAX] = { 0, };
 static XdkDisplay * xdk_default_display = NULL;
 
 static GError * xdk_last_error = NULL;
+
+static gboolean xdk_dump_error = FALSE;
 
 void xdk_display_class_init(XdkDisplayClass * clazz)
 {
@@ -91,10 +95,15 @@ void xdk_display_class_init(XdkDisplayClass * clazz)
 		NULL, NULL,
 		g_cclosure_marshal_VOID__POINTER,
 		G_TYPE_NONE, 0);
-		
+	
 	g_type_class_add_private(clazz, sizeof(XdkDisplayPrivate));
 	
 	XDK_ATOM_WM_DELETE_WINDOW = g_quark_from_static_string("WM_DELETE_WINDOW");
+	
+	if(g_getenv("XDK_DUMP_ERROR")) {
+		xdk_dump_error = TRUE;
+		XSetErrorHandler(xdk_display_default_error_handler);
+	}
 }
 
 static void xdk_display_init(XdkDisplay * self)
@@ -344,6 +353,10 @@ void xdk_display_remove_window(XdkDisplay * self, XdkWindow * window)
 	g_return_if_fail(None != xwin);
 	
 	g_hash_table_remove(self->priv->windows, GUINT_TO_POINTER(xwin));
+	g_signal_handlers_disconnect_by_func(
+		window,
+		xdk_display_window_destroyed,
+		self);
 }
 
 int xdk_display_get_connection_number(XdkDisplay * self)
@@ -621,6 +634,20 @@ static int xdk_display_on_error(Display * display, XErrorEvent * error)
 	return 1;
 }
 
+static int xdk_display_default_error_handler(Display * display, XErrorEvent * error)
+{
+	g_return_val_if_fail(! xdk_last_error, 0);
+
+	xdk_last_error = xdk_error_new(error);
+	if(xdk_last_error) {
+		g_warning("%s", xdk_last_error->message);
+		g_error_free(xdk_last_error);
+		xdk_last_error = NULL;
+	}
+	
+	return 1;
+}
+
 void xdk_trap_error()
 {
 	XSetErrorHandler(xdk_display_on_error);
@@ -630,7 +657,10 @@ gint xdk_untrap_error(GError ** error)
 {
 	XdkDisplay * display = xdk_display_get_default();
 	XSync(xdk_display_get_peer(display), FALSE);
-	XSetErrorHandler(NULL);
+	
+	if(xdk_dump_error) {
+		XSetErrorHandler(xdk_display_default_error_handler);
+	}
 	
 	gint error_code = XDK_ERROR_SUCCESS;
 	if(xdk_last_error) {
