@@ -136,11 +136,11 @@ static gint state_to_string(guint state, gchar * buf, gsize buf_size)
 		const char * name;
 	} MaskNamePair;
 	static const MaskNamePair mask_name_pairs[] = {
-		{ Button1Mask,	"Button1" },
+		/*{ Button1Mask,	"Button1" },
 		{ Button2Mask,	"Button2" },
 		{ Button3Mask,	"Button3" },
 		{ Button4Mask,	"Button4" },
-		{ Button5Mask,	"Button5" },
+		{ Button5Mask,	"Button5" },*/
 		{ ShiftMask,	"Shift" },
 		{ LockMask,		"Lock(CapsLock)" },
 		{ ControlMask,	"Control" },
@@ -161,16 +161,6 @@ static gint state_to_string(guint state, gchar * buf, gsize buf_size)
 	}
 	
 	return len;
-}
-
-static gint key_event_to_string(XKeyEvent * key_event, gchar * buf, gsize buf_size)
-{
-	KeySym keysym = XLookupKeysym(key_event, 0);
-	if(NoSymbol == keysym) {
-		return 0;
-	}
-	
-	return g_snprintf(buf, buf_size, "%s", XKeysymToString(keysym));
 }
 
 static void motion_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
@@ -195,11 +185,11 @@ static void motion_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 		break;
 	case KeyPress:
 	case KeyRelease: {
-		XKeyEvent * ke = (XKeyEvent *) event;
+		KeySym keysym = XLookupKeysym((XKeyEvent *) event, 0);
 		g_snprintf(buf + len, buf_size - len,
 			"\n\tkeycode=0x%x (%s)",
-			ke->keycode,
-			key_event_to_string(ke, buf + len, buf_size - len));
+			((XKeyEvent *) event)->keycode,
+			XKeysymToString(keysym));
 		break;
 		}
 	case MotionNotify:
