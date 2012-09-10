@@ -31,6 +31,8 @@ struct _XdkDisplayPrivate
 	guint event_watch_id;
 	
 	GList * event_filters;
+	
+	gboolean own_peer;
 };
 
 struct _XdkDisplaySource
@@ -56,6 +58,12 @@ static void xdk_display_dispose(GObject * object);
 
 static void xdk_display_finalize(GObject * object);
 
+static void xdk_display_set_property(
+	GObject        *object,
+	guint           property_id,
+	const GValue   *value,
+	GParamSpec     *pspec);
+
 static int xdk_display_on_error(Display * display, XErrorEvent * error);
 	
 static XdkEventFilterNode * xdk_event_filter_node_dup(XdkEventFilterNode * self);
@@ -76,6 +84,8 @@ static guint signals[SIGNAL_MAX] = { 0, };
 
 static XdkDisplay * xdk_default_display = NULL;
 
+static Display * xdk_deafult_xdisplay = NULL;
+
 static GError * xdk_last_error = NULL;
 
 static gboolean xdk_dump_error = FALSE;
@@ -95,7 +105,7 @@ void xdk_display_class_init(XdkDisplayClass * clazz)
 		NULL, NULL,
 		g_cclosure_marshal_VOID__POINTER,
 		G_TYPE_NONE, 0);
-	
+		
 	g_type_class_add_private(clazz, sizeof(XdkDisplayPrivate));
 	
 	XDK_ATOM_WM_DELETE_WINDOW = g_quark_from_static_string("WM_DELETE_WINDOW");
@@ -112,9 +122,15 @@ static void xdk_display_init(XdkDisplay * self)
 	self->priv = priv;
 
 	gboolean result = FALSE;
-	priv->peer = XOpenDisplay(g_getenv("DISPLAY"));
-	if(! priv->peer) {
-		g_error("Failed to initialize display");
+	if(! xdk_default_display && xdk_deafult_xdisplay) {
+		priv->peer = xdk_deafult_xdisplay;
+	}
+	else {
+		priv->peer = XOpenDisplay(g_getenv("DISPLAY"));
+		if(! priv->peer) {
+			g_error("Failed to initialize display");
+		}
+		priv->own_peer = TRUE;
 	}
 	
 	priv->name = XDisplayString(priv->peer);
@@ -177,7 +193,7 @@ static void xdk_display_finalize(GObject * object)
 
 	g_free(priv->screens);
 	
-	if(priv->peer) {
+	if(priv->peer && priv->own_peer) {
 		XCloseDisplay(priv->peer);
 	}
 	
@@ -670,4 +686,17 @@ gint xdk_untrap_error(GError ** error)
 	}
 	
 	return error_code;
+}
+
+Display * xdk_get_default_xdisplay()
+{
+	return xdk_display_get_default()->priv->peer;
+}
+
+void xdk_set_default_xdisplay(Display * display)
+{
+	g_return_if_fail(display);
+	g_return_if_fail(! xdk_default_display);
+	
+	xdk_deafult_xdisplay = display;
 }

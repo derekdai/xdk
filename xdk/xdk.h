@@ -17,6 +17,8 @@
 
 G_BEGIN_DECLS
 
+void xdk_disable_event_retrieval();
+
 gboolean xdk_init(int * argc, char ** args[]);
 
 void xdk_main();

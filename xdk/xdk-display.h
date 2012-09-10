@@ -50,6 +50,10 @@ XdkDisplay * xdk_display_get_default();
 
 Display * xdk_display_get_peer(XdkDisplay * self);
 
+Display * xdk_get_default_xdisplay();
+
+void xdk_set_default_xdisplay(Display * display);
+
 const char * xdk_display_get_vendor(XdkDisplay * self);
 
 gint xdk_display_get_release(XdkDisplay * self);
