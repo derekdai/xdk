@@ -3,7 +3,7 @@
 #include "xdk-types.h"
 #include <X11/keysym.h>
 
-typedef void (* XEventToStringFunc)(XEvent * event, gchar * buf, gsize buf_size);
+typedef void (* XEventToStringFunc)(XEvent * event, gchar * buf, gssize buf_size);
 
 typedef struct _XEventInfo XEventInfo;
 
@@ -15,36 +15,36 @@ struct _XEventInfo
 };
 
 static XEventToStringFunc xdk_util_event_get_to_string_func(XEvent * event);
-static void motion_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void crossing_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void focus_change_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void expose_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void graphics_expose_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void no_expose_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void visibility_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void create_window_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void destroy_window_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void unmap_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void map_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void map_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void reparent_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void configure_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void gravity_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void resize_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void configure_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void circulate_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void circulate_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void property_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void selection_clear_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void selection_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void selection_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void colormap_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void client_message_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void mapping_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void generic_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void error_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static void keymap_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
-static gint window_to_string(Window window, gchar * buf, gsize buf_size);
+static void motion_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void crossing_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void focus_change_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void expose_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void graphics_expose_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void no_expose_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void visibility_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void create_window_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void destroy_window_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void unmap_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void map_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void map_request_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void reparent_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void configure_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void gravity_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void resize_request_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void configure_request_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void circulate_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void circulate_request_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void property_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void selection_clear_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void selection_request_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void selection_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void colormap_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void client_message_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void mapping_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void generic_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void error_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void keymap_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static gint window_to_string(Window window, gchar * buf, gssize buf_size);
 static const char * boolean_to_string(gboolean v);
 static const char * window_class_to_string(gint win_class);
 static const char * backing_store_to_string(gint backing_store);
@@ -135,7 +135,7 @@ static XEventToStringFunc xdk_util_event_get_to_string_func(XEvent * event)
 	return event_infos[event->type].to_string_func;
 }
 
-static gint state_to_string(guint state, gchar * buf, gsize buf_size)
+static gint state_to_string(guint state, gchar * buf, gssize buf_size)
 {
 	typedef struct _MaskNamePair
 	{
@@ -170,7 +170,7 @@ static gint state_to_string(guint state, gchar * buf, gsize buf_size)
 	return len;
 }
 
-static void motion_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void motion_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XButtonEvent * e = (XButtonEvent *) event;
 	gint len = g_snprintf(buf, buf_size,
@@ -207,19 +207,19 @@ static void motion_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 	}
 }
 
-static void crossing_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void crossing_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
 
 
-static void focus_change_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void focus_change_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
 
 
-static void expose_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void expose_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XExposeEvent * e = (XExposeEvent *) event;
 	g_snprintf(buf, buf_size,
@@ -230,7 +230,7 @@ static void expose_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 		e->count);
 }
 
-static void graphics_expose_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void graphics_expose_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XGraphicsExposeEvent * e = (XGraphicsExposeEvent *) event;
 	g_snprintf(buf, buf_size,
@@ -242,7 +242,7 @@ static void graphics_expose_event_to_string(XEvent * event, gchar * buf, gsize b
 }
 
 
-static void no_expose_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void no_expose_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XGraphicsExposeEvent * e = (XGraphicsExposeEvent *) event;
 	g_snprintf(buf, buf_size,
@@ -251,12 +251,12 @@ static void no_expose_event_to_string(XEvent * event, gchar * buf, gsize buf_siz
 }
 
 
-static void visibility_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void visibility_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
 
-static void create_window_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void create_window_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XCreateWindowEvent * e = (XCreateWindowEvent *) event;
 	g_snprintf(buf, buf_size,
@@ -268,14 +268,14 @@ static void create_window_event_to_string(XEvent * event, gchar * buf, gsize buf
 		boolean_to_string(e->override_redirect));
 }
 
-static void destroy_window_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void destroy_window_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XDestroyWindowEvent * e = (XDestroyWindowEvent *) event;
 	g_snprintf(buf, buf_size,
 		"\n\twindow=%lu", e->window);
 }
 
-static void unmap_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void unmap_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XUnmapEvent * e = (XUnmapEvent *) event;
 	g_snprintf(buf, buf_size,
@@ -284,7 +284,7 @@ static void unmap_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 		boolean_to_string(e->from_configure));
 }
 
-static void map_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void map_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XMapEvent * e = (XMapEvent *) event;
 	g_snprintf(buf, buf_size,
@@ -293,13 +293,13 @@ static void map_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 		boolean_to_string(e->override_redirect));
 }
 
-static void map_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void map_request_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XMapRequestEvent * e = (XMapRequestEvent *) event;
 	g_snprintf(buf, buf_size, "\n\twindow=%lu", e->window);
 }
 
-static void reparent_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void reparent_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XReparentEvent * e = (XReparentEvent *) event;
 	g_snprintf(buf, buf_size,
@@ -310,7 +310,7 @@ static void reparent_event_to_string(XEvent * event, gchar * buf, gsize buf_size
 		boolean_to_string(e->override_redirect));
 }
 
-static void configure_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void configure_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XConfigureEvent * e = (XConfigureEvent *) event;
 	g_snprintf(buf, buf_size,
@@ -323,21 +323,21 @@ static void configure_event_to_string(XEvent * event, gchar * buf, gsize buf_siz
 		boolean_to_string(e->override_redirect));
 }
 
-static void gravity_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void gravity_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XGravityEvent * e = (XGravityEvent *) event;
 	g_snprintf(buf, buf_size,
 		"\n\twindow=%lu\n\tx=%d, y=%d", e->window, e->x, e->y);
 }
 
-static void resize_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void resize_request_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XResizeRequestEvent * e = (XResizeRequestEvent *) event;
 	g_snprintf(buf, buf_size,
 		"\n\twindow=%lu\n\twidth=%d, height=%d", e->window, e->width, e->height);
 }
 
-static void configure_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void configure_request_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XConfigureRequestEvent * e = (XConfigureRequestEvent *) event;
 	gint len = g_snprintf(buf, buf_size, "\n\tchild=%lu", e->window);
@@ -364,17 +364,17 @@ static void configure_request_event_to_string(XEvent * event, gchar * buf, gsize
 	}
 }
 
-static void circulate_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void circulate_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
 
-static void circulate_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void circulate_request_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
 
-static void property_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void property_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XPropertyEvent * e = (XPropertyEvent *) event;
 	XdkDisplay * display = xdk_display_get_default();
@@ -385,52 +385,59 @@ static void property_event_to_string(XEvent * event, gchar * buf, gsize buf_size
 		(PropertyNewValue == e->state) ? "PropertyNewValue" : "PropertyDelete");
 }
 
-static void selection_clear_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void selection_clear_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
 
-static void selection_request_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void selection_request_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
 
-static void selection_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void selection_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
 
-static void colormap_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void colormap_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
 
-static void client_message_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void client_message_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XClientMessageEvent * e = (XClientMessageEvent *) event;
 	XdkDisplay * display = xdk_display_get_default();
-	g_snprintf(buf, buf_size,
+	const char * message_type = xdk_display_atom_to_name(display, e->message_type);
+	gint len = g_snprintf(buf, buf_size,
 		"\n\tmessage_type=%s\n\tformat=%d",
-		xdk_display_atom_to_name(display, e->message_type),
+		message_type,
 		e->format);
+		
+	if(! g_strcmp0("WM_PROTOCOLS", message_type)) {
+		g_snprintf(buf + len, buf_size - len,
+			"\n\tdata.l[0](protocols)=%s",
+			xdk_display_atom_to_name(display, e->data.l[0]));
+	}
 }
 
-static void mapping_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void mapping_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
 
-static void generic_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void generic_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
 
-static void error_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void error_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
 
-static void keymap_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
+static void keymap_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	
 }
@@ -440,7 +447,7 @@ static const char * boolean_to_string(gboolean v)
 	return v ? "true" : "false";
 }
 
-static gint window_to_string(Window window, gchar * buf, gsize buf_size)
+static gint window_to_string(Window window, gchar * buf, gssize buf_size)
 {
 	XdkWindow * root = xdk_get_default_root_window();
 	if(window == xdk_window_get_peer(root)) {
