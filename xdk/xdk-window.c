@@ -43,6 +43,8 @@ struct _XdkWindowPrivate
 	gboolean own_peer : 1;
 	
 	gboolean destroyed : 1;
+	
+	gboolean override_redirect : 1;
 };
 
 enum {
@@ -367,14 +369,34 @@ static void _xdk_window_set_peer(XdkWindow * self, Window peer, gboolean own_pee
 	}
 }
 
+static void xdk_window_sync_attributes(XdkWindow * self)
+{
+	XWindowAttributes attributes;
+	xdk_window_get_attributes(self, & attributes);
+	
+	XdkWindowPrivate * priv = self->priv;
+	priv->x = attributes.x;
+	priv->y = attributes.y;
+	priv->width = attributes.width;
+	priv->height = attributes.height;
+	priv->gravity = attributes.win_gravity;
+	priv->mapped = (IsUnmapped != attributes.map_state);
+	priv->event_mask = attributes.your_event_mask;
+	priv->override_redirect = attributes.override_redirect;
+}
+
 void xdk_window_set_foreign_peer(XdkWindow * self, Window peer)
 {
 	_xdk_window_set_peer(self, peer, FALSE);
+	
+	xdk_window_sync_attributes(self);
 }
 
 void xdk_window_take_peer(XdkWindow * self, Window peer)
 {
 	_xdk_window_set_peer(self, peer, TRUE);
+	
+	xdk_window_sync_attributes(self);
 }
 
 Window xdk_window_get_peer(XdkWindow * self)
@@ -783,8 +805,15 @@ void xdk_window_set_attributes(
 
 void xdk_window_get_attributes(
 	XdkWindow * self,
-	XSetWindowAttributes * attributes)
+	XWindowAttributes * attributes)
 {
+	g_return_if_fail(self);
+	g_return_if_fail(attributes);
+	
+	XGetWindowAttributes(
+		xdk_display_get_peer(self->priv->display),
+		self->priv->peer,
+		attributes);
 }
 
 void xdk_window_set_parent(XdkWindow * self, XdkWindow * parent)
@@ -1072,4 +1101,11 @@ void xdk_window_select_input(XdkWindow * self, XdkEventMask event_mask)
 		xdk_display_get_peer(self->priv->display),
 		self->priv->peer,
 		event_mask);
+}
+
+gboolean xdk_window_has_override_redirect(XdkWindow * self)
+{
+	g_return_val_if_fail(self, FALSE);
+	
+	return self->priv->override_redirect;
 }

@@ -127,7 +127,7 @@ void xdk_window_set_attributes(
 
 void xdk_window_get_attributes(
 	XdkWindow * self,
-	XSetWindowAttributes * attributes);
+	XWindowAttributes * attributes);
 
 void xdk_window_set_gravity(XdkWindow * self, XdkGravity gravity);
 
@@ -177,6 +177,8 @@ void xdk_window_remove_child(XdkWindow * self, XdkWindow * child);
 gboolean xdk_window_contains_child(XdkWindow * self, XdkWindow * child);
 
 GList * xdk_window_list_children(XdkWindow * self);
+
+gboolean xdk_window_has_override_redirect(XdkWindow * self);
 
 void xdk_window_show(XdkWindow * self);
 
