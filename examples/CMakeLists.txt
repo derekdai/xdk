@@ -36,6 +36,9 @@ target_link_libraries( xdk-xcomposite xdk ${GLIB_LIBRARIES} ${XCOMPOSITE_LIBRARI
 add_executable( xdk-root-struct-redirect xdk-root-struct-redirect )
 target_link_libraries( xdk-root-struct-redirect xdk ${GLIB_LIBRARIES} ${XCOMPOSITE_LIBRARIES} ${X11_LIBRARIES} )
 
+add_executable( xdk-tile-wm xdk-tile-wm )
+target_link_libraries( xdk-tile-wm xdk ${GLIB_LIBRARIES} ${XCOMPOSITE_LIBRARIES} ${X11_LIBRARIES} )
+
 pkg_check_modules( GTK REQUIRED gtk+-3.0 )
 pkg_check_modules( CLUTTER REQUIRED clutter-1.0 )
 include_directories( ${GTK_INCLUDE_DIRS} ${CLUTTER_INCLUDE_DIRS} )
