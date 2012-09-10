@@ -225,7 +225,7 @@ GError * xdk_error_new(XErrorEvent * error)
 		gerror = g_error_new(
 			XDK_ERROR,
 			error->error_code,
-			"%s [display=%s, serial=%lu, request_code=%s, minor_code=%u, resourceid=0x%x]",
+			"%s: display=%s, serial=%lu, request_code=%s, minor_code=%u, resourceid=%lu",
 			xdk_error_type_to_string(error->error_code),
 			XDisplayString(error->display),
 			error->serial,
