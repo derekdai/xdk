@@ -48,3 +48,6 @@ target_link_libraries( clutter-sync ${GTK_LIBRARIES} ${CLUTTER_LIBRARIES} )
 
 add_executable( gtk-clutter-mixup gtk-clutter-mixup )
 target_link_libraries( gtk-clutter-mixup xdk ${GTK_LIBRARIES} ${CLUTTER_LIBRARIES} )
+
+add_executable( xdk-clutter-mixup.c xdk-clutter-mixup.c )
+target_link_libraries( xdk-clutter-mixup.c xdk ${CLUTTER_LIBRARIES} )
