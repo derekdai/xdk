@@ -382,30 +382,39 @@ int xdk_display_get_connection_number(XdkDisplay * self)
 	return XConnectionNumber(self->priv->peer);
 }
 
-static void xdk_display_dispatch_event(XdkDisplay * self)
+gboolean xdk_display_handle_event(XdkDisplay * self, XEvent * event)
 {
 	g_return_if_fail(self);
-	
-	XEvent event;
+
 	XdkDisplayPrivate * priv = self->priv;
-	XNextEvent(priv->peer, & event);
 	GList * node = g_list_last(priv->event_filters);
 	while(node) {
 		XdkEventFilterNode * filter_node = XDK_EVENT_FILTER_NODE(node->data);
-		if(filter_node->filter(self, & event, filter_node->user_data)) {
-			return;
+		if(filter_node->filter(self, event, filter_node->user_data)) {
+			return TRUE;
 		}
 		node = g_list_previous(node);
 	}
 	
 	XdkWindow * window = xdk_display_lookup_window(
 		self,
-		event.xany.window);
+		event->xany.window);
 	if(! window) {
-		return;
+		return FALSE;
 	}
 	
-	xdk_window_dispatch_event(window, & event);
+	xdk_window_dispatch_event(window, event);
+	
+	return TRUE;
+}
+
+static void xdk_display_fetch_and_handle_event(XdkDisplay * self)
+{
+	g_return_if_fail(self);
+	
+	XEvent event;
+	XNextEvent(self->priv->peer, & event);
+	xdk_display_handle_event(self, & event);
 }
 
 static gboolean xdk_display_source_prepare(GSource * source, gint * timeout)
@@ -502,7 +511,7 @@ GSource * xdk_display_watch_source_new(XdkDisplay * self)
 	g_source_add_poll(source, & priv->poll_fd);
 	g_source_set_callback(
 		source,
-		(GSourceFunc) xdk_display_dispatch_event, self,
+		(GSourceFunc) xdk_display_fetch_and_handle_event, self,
 		NULL);
 	XDK_DISPLAY_SOURCE(source)->display = self;
 		

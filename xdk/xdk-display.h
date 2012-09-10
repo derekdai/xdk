@@ -91,6 +91,8 @@ void xdk_display_remove_watch(XdkDisplay * self);
 
 GSource * xdk_display_watch_source_new(XdkDisplay * self);
 
+gboolean xdk_display_handle_event(XdkDisplay * self, XEvent * event);
+
 void xdk_display_add_event_filter(
 	XdkDisplay * self,
 	XdkEventFilter filter,
