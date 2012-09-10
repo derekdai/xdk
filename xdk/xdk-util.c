@@ -1,5 +1,6 @@
 #include "xdk-util.h"
 #include "xdk-display.h"
+#include "xdk-types.h"
 #include <X11/keysym.h>
 
 typedef void (* XEventToStringFunc)(XEvent * event, gchar * buf, gsize buf_size);
@@ -43,9 +44,14 @@ static void mapping_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 static void generic_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
 static void error_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
 static void keymap_event_to_string(XEvent * event, gchar * buf, gsize buf_size);
+static gint window_to_string(Window window, gchar * buf, gsize buf_size);
 static const char * boolean_to_string(gboolean v);
+static const char * window_class_to_string(gint win_class);
+static const char * backing_store_to_string(gint backing_store);
+static const char * gravity_to_string(gint gravity);
+static const char * map_state_to_string(gint map_state);
 
-static char xdk_util_buf[1024];
+static char xdk_util_buf[4096];
 
 static const XEventInfo event_infos[] = {
 	{ "Unknown", NULL },
@@ -97,13 +103,13 @@ gchar * xdk_util_event_to_string(XEvent * event)
 	
 	gint len = g_snprintf(
 		xdk_util_buf, sizeof(xdk_util_buf),
-		"%s %d:\n\tserial=%lu\n\tsend_event=%s\n\tdisplay=%s\n\tevent=%lu",
+		"%s %d:\n\tserial=%lu\n\tsend_event=%s\n\tdisplay=%s\n\tevent=",
 		xdk_util_event_get_name(event),
 		event->type,
 		event->xany.serial,
 		boolean_to_string(event->xany.send_event),
-		XDisplayString(event->xany.display),
-		event->xany.window);
+		XDisplayString(event->xany.display));
+	len += window_to_string(event->xany.window, xdk_util_buf + len, sizeof(xdk_util_buf) - len);
 		
 	XEventToStringFunc to_string_func = xdk_util_event_get_to_string_func(event);
 	if(to_string_func) {
@@ -336,7 +342,7 @@ static void configure_request_event_to_string(XEvent * event, gchar * buf, gsize
 	XConfigureRequestEvent * e = (XConfigureRequestEvent *) event;
 	gint len = g_snprintf(buf, buf_size, "\n\tchild=%lu", e->window);
 	if(e->value_mask & CWX) {
-		gint len = g_snprintf(buf + len, buf_size - len, "\n\tx=%d", e->x);
+		len += g_snprintf(buf + len, buf_size - len, "\n\tx=%d", e->x);
 	}
 	if(e->value_mask & CWY) {
 		len += g_snprintf(buf + len, buf_size - len, "\n\ty=%d", e->y);
@@ -432,4 +438,120 @@ static void keymap_event_to_string(XEvent * event, gchar * buf, gsize buf_size)
 static const char * boolean_to_string(gboolean v)
 {
 	return v ? "true" : "false";
+}
+
+static gint window_to_string(Window window, gchar * buf, gsize buf_size)
+{
+	XdkWindow * root = xdk_get_default_root_window();
+	if(window == xdk_window_get_peer(root)) {
+		return g_snprintf(buf, buf_size, "%lu (root)", window);
+	}
+	
+	XdkDisplay * display = xdk_display_get_default();
+	XWindowAttributes attributes;
+	GError * error = NULL;
+	
+	xdk_trap_error();
+	XGetWindowAttributes(
+		xdk_display_get_peer(display),
+		window,
+		& attributes);
+	if(xdk_untrap_error(& error)) {
+		g_warning("%s", error->message);
+		return;
+	}
+	
+	return g_snprintf(buf, buf_size,
+		"[window=%lu, x=%d, y=%d, width=%d, height=%d, depth=%d, visual=%p, " \
+		"root=%lu, class=%s, bit_gravity=%s, win_gravity=%s, " \
+		"backing_store=%s, backing_planes=%lu, backing_pixel=0x%08x, " \
+		"save_under=%s, colormap=%lu, map_installed=%s, map_state=%s, " \
+		"all_event_masks=%x, your_event_mask=%x, " \
+		"do_not_propagate_mask=%x, override_redirect=%s, screen=%p]",
+		window,
+		attributes.x,
+		attributes.y,
+		attributes.width,
+		attributes.height,
+		attributes.depth,
+		attributes.visual,
+		attributes.root,
+		window_class_to_string(attributes.class),
+		gravity_to_string(attributes.bit_gravity),
+		gravity_to_string(attributes.win_gravity),
+		backing_store_to_string(attributes.backing_store),
+		attributes.backing_planes,
+		attributes.backing_pixel,
+		boolean_to_string(attributes.save_under),
+		attributes.colormap,
+		boolean_to_string(attributes.map_installed),
+		map_state_to_string(attributes.map_state),
+		attributes.all_event_masks,
+		attributes.your_event_mask,
+		attributes.do_not_propagate_mask,
+		boolean_to_string(attributes.override_redirect),
+		attributes.screen);
+}
+
+static const char * window_class_to_string(gint win_class)
+{
+	return (InputOutput == win_class) ? "InputOutput" : "InputOnly";
+}
+
+static const char * backing_store_to_string(gint backing_store)
+{
+	switch(backing_store) {
+	case NotUseful:
+		return "NotUseful";
+	case WhenMapped:
+		return "WhenMapped";
+	case Always:
+		return "Always";
+	}
+	
+	return "Unknown";
+}
+
+static const char * gravity_to_string(gint gravity)
+{
+	switch(gravity) {
+	case UnmapGravity:
+		return "UnmapGravity";
+	case NorthWestGravity:
+		return "NorthWestGravity";
+	case NorthGravity:
+		return "NorthGravity";
+	case NorthEastGravity:
+		return "NorthEastGravity";
+	case WestGravity:
+		return "WestGravity";
+	case CenterGravity:
+		return "CenterGravity";
+	case EastGravity:
+		return "EastGravity";
+	case SouthWestGravity:
+		return "SouthWestGravity";
+	case SouthGravity:
+		return "SouthGravity";
+	case SouthEastGravity:
+		return "SouthEastGravity";
+//	case ForgetGravity:
+//		return "ForgetGravity";
+	}
+
+	return "Unknown";
+}
+
+static const char * map_state_to_string(gint map_state)
+{
+	switch(map_state) {
+	case IsUnmapped:
+		return "IsUnmapped";
+	case IsUnviewable:
+		return "IsUnviewable";
+	case IsViewable:
+		return "IsViewable";
+	}
+	
+	return "Unknown";
 }
