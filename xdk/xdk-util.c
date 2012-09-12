@@ -121,16 +121,18 @@ gchar * xdk_util_event_to_string(XEvent * event)
 
 const char * xdk_util_event_get_name(XEvent * event)
 {
-	g_return_val_if_fail(event, "Unknown");
-	g_return_val_if_fail(event->type >= 2 && event->type < G_N_ELEMENTS(event_infos), "Unknown");
+	if(! event || event->type < 2 || event->type >= G_N_ELEMENTS(event_infos)) {
+		return "Unknown";
+	}
 	
 	return event_infos[event->type].name;
 }
 
 static XEventToStringFunc xdk_util_event_get_to_string_func(XEvent * event)
 {
-	g_return_val_if_fail(event, NULL);
-	g_return_val_if_fail(event->type >= 2 && event->type < G_N_ELEMENTS(event_infos), NULL);
+	if(! event || event->type < 2 || event->type >= G_N_ELEMENTS(event_infos)) {
+		return NULL;
+	}
 	
 	return event_infos[event->type].to_string_func;
 }
@@ -471,7 +473,7 @@ static gint window_to_string(Window window, gchar * buf, gssize buf_size)
 	return g_snprintf(buf, buf_size,
 		"[window=%lu, x=%d, y=%d, width=%d, height=%d, depth=%d, visual=%p, " \
 		"root=%lu, class=%s, bit_gravity=%s, win_gravity=%s, " \
-		"backing_store=%s, backing_planes=%lu, backing_pixel=0x%08x, " \
+		"backing_store=%s, backing_planes=0x%08lx, backing_pixel=0x%08x, " \
 		"save_under=%s, colormap=%lu, map_installed=%s, map_state=%s, " \
 		"all_event_masks=%x, your_event_mask=%x, " \
 		"do_not_propagate_mask=%x, override_redirect=%s, screen=%p]",
@@ -561,4 +563,16 @@ static const char * map_state_to_string(gint map_state)
 	}
 	
 	return "Unknown";
+}
+
+void xdk_util_window_dump(Window window)
+{
+	g_printerr("%s\n", xdk_util_window_to_string(window));
+}
+
+const char * xdk_util_window_to_string(Window window)
+{
+	window_to_string(window, xdk_util_buf, sizeof(xdk_util_buf));
+	
+	return xdk_util_buf;
 }
