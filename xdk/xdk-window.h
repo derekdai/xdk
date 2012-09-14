@@ -106,17 +106,22 @@ void xdk_window_get_position(XdkWindow * self, gint * x, gint * y);
 
 void xdk_window_set_position(XdkWindow * self, gint x, gint y);
 
-guint xdk_window_get_width(XdkWindow * self);
+gint xdk_window_get_width(XdkWindow * self);
 
-void xdk_window_set_width(XdkWindow * self, guint width);
+void xdk_window_set_width(XdkWindow * self, gint width);
 
-guint xdk_window_get_height(XdkWindow * self);
+gint xdk_window_get_height(XdkWindow * self);
 
-void xdk_window_set_height(XdkWindow * self, guint height);
+void xdk_window_set_height(XdkWindow * self, gint height);
 
-void xdk_window_get_size(XdkWindow * self, guint * width, guint * height);
+void xdk_window_get_size(XdkWindow * self, gint * width, gint * height);
 
-void xdk_window_set_size(XdkWindow * self, guint width, guint height);
+/**
+ * 
+ * @width: -1 to ocupy width of screen
+ * @height: -1 to ocupy height of screen
+ */
+void xdk_window_set_size(XdkWindow * self, gint width, gint height);
 
 void xdk_window_dispatch_event(XdkWindow * self, XEvent * event);
 

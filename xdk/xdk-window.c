@@ -20,9 +20,9 @@ struct _XdkWindowPrivate
 	
 	gint y;
 	
-	guint width;
+	gint width;
 	
-	guint height;
+	gint height;
 	
 	guint border_width;
 	
@@ -565,7 +565,7 @@ void xdk_window_set_y(XdkWindow * self, int y)
 	xdk_window_set_position(self, self->priv->x, y);
 }
 
-void xdk_window_get_size(XdkWindow * self, guint * width, guint * height)
+void xdk_window_get_size(XdkWindow * self, gint * width, gint * height)
 {
 	g_return_if_fail(self);
 
@@ -578,45 +578,56 @@ void xdk_window_get_size(XdkWindow * self, guint * width, guint * height)
 	}
 }
 
-void xdk_window_set_size(XdkWindow * self, guint width, guint height)
+void xdk_window_set_size(XdkWindow * self, gint width, gint height)
 {
 	g_return_if_fail(self);
+	g_return_if_fail(width >= -1 && width != 0);
+	g_return_if_fail(height >= -1 && height != 0);
 	
 	XdkWindowPrivate * priv = self->priv;
-	priv->width = width;
-	priv->height = height;
-	
-	if(! xdk_window_is_realized(self)) {
-		return;
+	if(-1 == width) {
+		width = priv->parent
+			? xdk_window_get_width(priv->parent)
+			: xdk_screen_get_width(priv->screen);
+	}
+	if(-1 == height) {
+		height = priv->parent
+			? xdk_window_get_height(priv->parent)
+			: xdk_screen_get_height(priv->screen);
+	}
+
+	if(xdk_window_is_realized(self)) {
+		XResizeWindow(
+			xdk_display_get_peer(priv->display), priv->peer,
+			width, height);
 	}
 	
-	XResizeWindow(
-		xdk_display_get_peer(priv->display), priv->peer,
-		width, height);
+	priv->width = width;
+	priv->height = height;
 }
 
-guint xdk_window_get_width(XdkWindow * self)
+gint xdk_window_get_width(XdkWindow * self)
 {
-	g_return_val_if_fail(self, 0);
+	g_return_val_if_fail(self, 1);
 	
 	return self->priv->width;
 }
 
-void xdk_window_set_width(XdkWindow * self, guint width)
+void xdk_window_set_width(XdkWindow * self, gint width)
 {
 	g_return_if_fail(self);
 	
 	xdk_window_set_size(self, width, self->priv->height);
 }
 
-guint xdk_window_get_height(XdkWindow * self)
+gint xdk_window_get_height(XdkWindow * self)
 {
-	g_return_val_if_fail(self, 0);
+	g_return_val_if_fail(self, 1);
 	
 	return self->priv->height;
 }
 
-void xdk_window_set_height(XdkWindow * self, guint height)
+void xdk_window_set_height(XdkWindow * self, gint height)
 {
 	g_return_if_fail(self);
 	
