@@ -2,9 +2,7 @@
 
 int main(int * argc, char * args[])
 {
-	if(! xdk_init(NULL, NULL)) {
-		g_error("Failed to init XDK");
-	}
+	xdk_init(& argc, & args);
 	
 	XdkDisplay * display = xdk_display_get_default();
 	g_message("Default display '%s' has %d screens, vendor is %s, version %d",
