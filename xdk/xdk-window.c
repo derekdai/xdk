@@ -463,6 +463,7 @@ static void xdk_window_default_realize(XdkWindow * self)
 		.event_mask = priv->event_mask,
 		.background_pixel = priv->background_color,
 		.win_gravity = priv->gravity,
+		.backing_store = WhenMapped,
 	};
 	Window peer = xdk_window_create_window(
 		self,
@@ -852,8 +853,6 @@ XdkWindow * xdk_window_get_parent(XdkWindow * self)
 
 void xdk_window_set_background_color(XdkWindow * self, gulong background_color)
 {
-	g_message("%x", background_color);
-	
 	if(background_color == self->priv->background_color) {
 		return;
 	}
@@ -1108,4 +1107,33 @@ gboolean xdk_window_has_override_redirect(XdkWindow * self)
 	g_return_val_if_fail(self, FALSE);
 	
 	return self->priv->override_redirect;
+}
+
+GList * xdk_window_query_tree(XdkWindow * self)
+{
+	g_return_val_if_fail(self, NULL);
+	XdkWindowPrivate * priv = self->priv;
+	g_return_val_if_fail(priv->peer, NULL);
+	
+	GList * tree = NULL;
+	Window root, parent, * children;
+	guint n_children;
+	if(! XQueryTree(
+			xdk_display_get_peer(priv->display),
+			priv->peer,
+			& root,
+			& parent,
+			& children, & n_children)) {
+		goto end;
+	}
+	
+	guint i;
+	for(i = 0; i < n_children; i ++) {
+		tree = g_list_prepend(tree, GUINT_TO_POINTER(children[i]));
+	}
+	tree = g_list_reverse(tree);
+	XFree(children);
+	
+end:
+	return tree;
 }
