@@ -111,7 +111,9 @@ gint main(gint argc, gchar * args[])
 		NULL, (GDestroyNotify) clutter_actor_destroy);
 	
 	clutter_x11_set_use_argb_visual(TRUE);
-	clutter_init(& argc, & args);
+	if(CLUTTER_INIT_SUCCESS != clutter_init(& argc, & args)) {
+		return 1;
+	}
 	
 	xdk_disable_event_retrieval();
 	xdk_set_default_xdisplay(clutter_x11_get_default_display());
