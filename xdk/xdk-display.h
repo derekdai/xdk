@@ -117,6 +117,10 @@ GList * xdk_display_list_xwindows(XdkDisplay * display);
 
 XdkScreen * xdk_display_lookup_screen(XdkDisplay * display, Screen * screen);
 
+int xdk_display_grab_server(XdkDisplay * display);
+
+int xdk_display_ungrab_server(XdkDisplay * display);
+
 XdkScreen * xdk_get_default_screen();
 
 XdkWindow * xdk_get_default_root_window();

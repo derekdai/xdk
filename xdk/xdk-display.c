@@ -421,9 +421,7 @@ static gboolean xdk_display_source_prepare(GSource * source, gint * timeout)
 {
 	* timeout = -1;
 	
-	XdkDisplayPrivate * priv = XDK_DISPLAY_SOURCE(source)->display->priv;
-	
-	return XPending(priv->peer);
+	return XPending(XDK_DISPLAY_SOURCE(source)->display->priv->peer);
 }
 
 static gboolean xdk_display_source_check(GSource * source)
@@ -444,8 +442,6 @@ static gboolean xdk_display_source_check(GSource * source)
 	}
 	
 	int num_events = XPending(priv->peer);
-	
-	g_debug("xdk_display_source_check: %d event pendding", num_events);
 	
 	return num_events;
 }
@@ -708,4 +704,18 @@ void xdk_set_default_xdisplay(Display * display)
 	g_return_if_fail(! xdk_default_display);
 	
 	xdk_deafult_xdisplay = display;
+}
+
+int xdk_display_grab_server(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, 0);
+	
+	return XGrabServer(self->priv->peer);
+}
+
+int xdk_display_ungrab_server(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, 0);
+	
+	return XUngrabServer(self->priv->peer);
 }
