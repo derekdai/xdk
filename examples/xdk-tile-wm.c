@@ -92,7 +92,6 @@ void on_unmap_notify(XdkWindow * root, XEvent * event, XdkDisplay * display)
 		return;
 	}
 	
-	xdk_window_unmap(win);
 	GList * node = g_list_find(windows, win);
 	windows = g_list_delete_link(windows, node);
 	g_message("Unmap: %d", g_list_length(windows));

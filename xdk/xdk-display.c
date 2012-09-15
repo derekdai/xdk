@@ -120,14 +120,13 @@ gboolean xdk_display_open(XdkDisplay * self, const char * display_string)
 	XdkDisplayPrivate * priv = self->priv;
 	g_return_val_if_fail(! priv->peer, FALSE);
 	
-	gboolean result = FALSE;
 	if(! xdk_default_display && xdk_deafult_xdisplay) {
 		priv->peer = xdk_deafult_xdisplay;
 	}
 	else {
 		priv->peer = XOpenDisplay(display_string);
 		if(! priv->peer) {
-			g_error("Failed to initialize display");
+			goto end;
 		}
 		priv->own_peer = TRUE;
 	}
@@ -157,6 +156,9 @@ gboolean xdk_display_open(XdkDisplay * self, const char * display_string)
 			(XdkEventFilter) xdk_display_dump_event,
 			NULL);
 	}
+	
+end:
+	return NULL != priv->peer;
 }
 
 static void xdk_display_dispose(GObject * object)
@@ -193,7 +195,7 @@ void _xdk_display_init_default()
 	}
 	
 	xdk_default_display = g_object_new(XDK_TYPE_DISPLAY, NULL);
-	if(xdk_display_open(xdk_default_display, g_getenv("DISPLAY"))) {
+	if(! xdk_display_open(xdk_default_display, g_getenv("DISPLAY"))) {
 		g_error("Failed to open default display");
 	}
 }
@@ -657,9 +659,16 @@ static int xdk_display_default_error_handler(Display * display, XErrorEvent * er
 	return 1;
 }
 
+static int xdk_display_on_error(Display * display, XErrorEvent * error)
+{
+	g_return_val_if_fail(! xdk_last_error, 0);
+	
+	xdk_last_error = xdk_error_new(error);
+}
+
 void xdk_trap_error()
 {
-	XSetErrorHandler(xdk_display_default_error_handler);
+	XSetErrorHandler(xdk_display_on_error);
 }
 
 gint xdk_untrap_error(GError ** error)

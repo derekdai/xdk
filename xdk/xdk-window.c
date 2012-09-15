@@ -1068,6 +1068,8 @@ static void xdk_window_handle_map_notify(XdkWindow * self, XEvent * event)
 
 static void xdk_window_handle_unmap_notify(XdkWindow * self, XEvent * event)
 {
+	g_message("%lu unmapped", self->priv->peer);
+	
 	self->priv->mapped = FALSE;
 }
 
