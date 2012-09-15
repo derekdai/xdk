@@ -1,6 +1,5 @@
 #include "xdk-display.h"
 #include "xdk-screen.h"
-#include "xdk-screen-private.h"
 
 #define XDK_DISPLAY_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE(o, XDK_TYPE_DISPLAY, XdkDisplayPrivate))
 
@@ -16,11 +15,7 @@ struct _XdkDisplayPrivate
 {
 	Display * peer;
 	
-	gchar * name;
-	
 	gint n_screens;
-	
-	gint default_screen;
 	
 	XdkScreen ** screens;
 	
@@ -64,8 +59,6 @@ static void xdk_display_set_property(
 	const GValue   *value,
 	GParamSpec     *pspec);
 
-static int xdk_display_on_error(Display * display, XErrorEvent * error);
-	
 static XdkEventFilterNode * xdk_event_filter_node_dup(XdkEventFilterNode * self);
 
 static void xdk_event_filter_node_free(XdkEventFilterNode * self);
@@ -118,47 +111,40 @@ void xdk_display_class_init(XdkDisplayClass * clazz)
 
 static void xdk_display_init(XdkDisplay * self)
 {
-	XdkDisplayPrivate * priv = XDK_DISPLAY_GET_PRIVATE(self);
-	self->priv = priv;
+	self->priv = XDK_DISPLAY_GET_PRIVATE(self);
+}
 
+gboolean xdk_display_open(XdkDisplay * self, const char * display_string)
+{
+	g_return_val_if_fail(self, FALSE);
+	XdkDisplayPrivate * priv = self->priv;
+	g_return_val_if_fail(! priv->peer, FALSE);
+	
 	gboolean result = FALSE;
 	if(! xdk_default_display && xdk_deafult_xdisplay) {
 		priv->peer = xdk_deafult_xdisplay;
 	}
 	else {
-		priv->peer = XOpenDisplay(g_getenv("DISPLAY"));
+		priv->peer = XOpenDisplay(display_string);
 		if(! priv->peer) {
 			g_error("Failed to initialize display");
 		}
 		priv->own_peer = TRUE;
 	}
 	
-	priv->name = XDisplayString(priv->peer);
-	priv->default_screen = XDefaultScreen(priv->peer);
 	priv->n_screens = XScreenCount(priv->peer);
 	priv->screens = g_malloc0(sizeof(XdkScreen *) * priv->n_screens);
 	priv->windows = g_hash_table_new(g_direct_hash, g_direct_equal);
 	
-	// display ready to expose to outside world
-	xdk_default_display = self;
-
 	int i;
 	for(i = 0; i < priv->n_screens; i ++) {
-		XdkScreen * screen = xdk_screen_new();
-		if(! screen) {
-			return;
-		}
-		xdk_screen_set_display(screen, self);
-		xdk_screen_set_peer(screen, XScreenOfDisplay(priv->peer, i));
-		priv->screens[i] = screen;
+		priv->screens[i] = g_object_new(
+			XDK_TYPE_SCREEN,
+			"peer", XScreenOfDisplay(priv->peer, i),
+			"display", self,
+			NULL);
 	}
-	
-	for(i = 0; i < priv->n_screens; i ++) {
-		xdk_display_add_window(
-			self,
-			xdk_screen_get_root_window(priv->screens[i]));
-	}
-	
+
 	Atom atom = XInternAtom(priv->peer, "WM_DELETE_WINDOW", FALSE);
 	g_object_set_qdata(
 		G_OBJECT(self),
@@ -200,10 +186,22 @@ static void xdk_display_finalize(GObject * object)
 	G_OBJECT_CLASS(xdk_display_parent_class)->finalize(object);
 }
 
+void _xdk_display_init_default()
+{
+	if(xdk_default_display) {
+		g_error("Default XdkDisplay already initialized");
+	}
+	
+	xdk_default_display = g_object_new(XDK_TYPE_DISPLAY, NULL);
+	if(xdk_display_open(xdk_default_display, g_getenv("DISPLAY"))) {
+		g_error("Failed to open default display");
+	}
+}
+
 XdkDisplay * xdk_display_get_default()
 {
-	if(! xdk_default_display) {
-		g_object_new(XDK_TYPE_DISPLAY, NULL);
+	if(G_UNLIKELY(! xdk_default_display)) {
+		g_error("Call xdk_init() to initialize Xdk first");
 	}
 	
 	return xdk_default_display;
@@ -220,7 +218,7 @@ const gchar * xdk_display_get_name(XdkDisplay * self)
 {
 	g_return_val_if_fail(self, NULL);
 	
-	return self->priv->name;
+	return DisplayString(self->priv->peer);
 }
 
 gint xdk_display_get_n_screens(XdkDisplay * self)
@@ -233,10 +231,9 @@ gint xdk_display_get_n_screens(XdkDisplay * self)
 XdkScreen * xdk_display_get_default_screen(XdkDisplay * self)
 {
 	g_return_val_if_fail(self, NULL);
+
 	XdkDisplayPrivate * priv = self->priv;
-	g_return_val_if_fail(priv->screens, NULL);
-	
-	return priv->screens[priv->default_screen];
+	return priv->screens[DefaultScreen(priv->peer)];
 }
 
 void xdk_display_flush(XdkDisplay * self)
@@ -465,7 +462,7 @@ GSourceFuncs xdk_display_source_funcs = {
 
 void xdk_display_add_watch(XdkDisplay * self)
 {
-	g_return_if_fail(self);
+	g_return_if_fail(self && self->priv->peer);
 	
 	XdkDisplayPrivate * priv = self->priv;
 	if(priv->event_watch_id) {
@@ -646,15 +643,6 @@ static gboolean xdk_display_dump_event(Display * display, XEvent * event)
 	return FALSE;
 }
 
-static int xdk_display_on_error(Display * display, XErrorEvent * error)
-{
-	g_return_val_if_fail(! xdk_last_error, 0);
-
-	xdk_last_error = xdk_error_new(error);
-	
-	return 1;
-}
-
 static int xdk_display_default_error_handler(Display * display, XErrorEvent * error)
 {
 	g_return_val_if_fail(! xdk_last_error, 0);
@@ -671,7 +659,7 @@ static int xdk_display_default_error_handler(Display * display, XErrorEvent * er
 
 void xdk_trap_error()
 {
-	XSetErrorHandler(xdk_display_on_error);
+	XSetErrorHandler(xdk_display_default_error_handler);
 }
 
 gint xdk_untrap_error(GError ** error)

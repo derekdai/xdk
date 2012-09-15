@@ -90,6 +90,8 @@ void xdk_window_unmap(XdkWindow * self);
 
 void xdk_window_destroy(XdkWindow * self);
 
+struct _XdkDisplay * xdk_window_get_display(XdkWindow * self);
+
 XdkScreen * xdk_window_get_screen(XdkWindow * self);
 
 void xdk_window_set_screen(XdkWindow * self, XdkScreen * screen);

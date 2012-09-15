@@ -48,6 +48,8 @@ gboolean xdk_display_init_once();
 
 XdkDisplay * xdk_display_get_default();
 
+gboolean xdk_display_open(XdkDisplay * self, const char * display_string);
+
 Display * xdk_display_get_peer(XdkDisplay * self);
 
 Display * xdk_get_default_xdisplay();

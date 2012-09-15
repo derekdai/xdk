@@ -1,9 +1,8 @@
 #include "xdk.h"
 
-int main(int * argc, char * args[])
+int main(int argc, char * args[])
 {
 	xdk_init(& argc, & args);
-	
 	XdkDisplay * display = xdk_display_get_default();
 	g_message("Default display '%s' has %d screens, vendor is %s, version %d",
 		xdk_display_get_name(display),
@@ -21,7 +20,7 @@ int main(int * argc, char * args[])
 	XdkWindow * win = xdk_window_new();
 	xdk_window_set_background_color(win, 0xff0000ff);
 	xdk_window_set_position(win, 100, 100);
-	xdk_window_set_size(win, 1280, 720);
+	xdk_window_set_size(win, 1280 - 200, 720 - 200);
 	xdk_window_realize(win);
 	xdk_window_map(win);
 	

@@ -53,6 +53,18 @@ enum {
 	SIGNAL_MAX,
 };
 
+enum {
+	PROP_SCREEN = 1,
+};
+
+static void xdk_window_set_property(
+	GObject * object,
+	guint property_id,
+	const GValue * value,
+	GParamSpec * pspec);
+
+static void xdk_window_constructed(GObject * object);
+
 static void xdk_window_dispose(GObject * object);
 
 static void xdk_window_finalize(GObject * object);
@@ -84,6 +96,8 @@ static guint signals[SIGNAL_MAX] = { 0, };
 static void xdk_window_class_init(XdkWindowClass * clazz)
 {
 	GObjectClass * gobject_class = G_OBJECT_CLASS(clazz);
+	gobject_class->set_property = xdk_window_set_property;
+	gobject_class->constructed = xdk_window_constructed;
 	gobject_class->dispose = xdk_window_dispose;
 	gobject_class->finalize = xdk_window_finalize;
 	
@@ -92,6 +106,14 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 	clazz->delete_event = xdk_window_handle_delete_event;
 	clazz->map_notify = xdk_window_handle_map_notify;
 	clazz->unmap_notify = xdk_window_handle_unmap_notify;
+	
+	g_object_class_install_property(
+		gobject_class,
+		PROP_SCREEN,
+		g_param_spec_object(
+			"screen", "", "",
+			XDK_TYPE_SCREEN,
+			G_PARAM_WRITABLE | G_PARAM_CONSTRUCT));
 	
 	GType type = G_TYPE_FROM_CLASS(clazz);
 	signals[XDK_WINDOW_DELETE_EVENT] = g_signal_new(
@@ -324,14 +346,45 @@ static void xdk_window_init(XdkWindow * self)
 	XdkWindowPrivate * priv = XDK_WINDOW_GET_PRIVATE(self);
 	self->priv = priv;
 	
-	priv->display = xdk_display_get_default();
-	priv->screen = xdk_display_get_default_screen(priv->display);
 	priv->peer = None;
-	priv->background_color = 0xffffffff;
 	priv->width = 1;
 	priv->height = 1;
 	priv->gravity = XDK_GRAVITY_CENTER;
 	priv->event_mask = XDK_EVENT_MASK_STRUCTURE_NOTIFY;
+}
+
+static void xdk_window_set_property(
+	GObject * object,
+	guint property_id,
+	const GValue * value,
+	GParamSpec * pspec)
+{
+	XdkWindow * self = XDK_WINDOW(object);
+	
+	switch(property_id) {
+	case PROP_SCREEN: {
+		XdkScreen * screen = XDK_SCREEN(g_value_get_object(value));
+		if(NULL == screen) {
+			screen = xdk_get_default_screen();
+		}
+		xdk_window_set_screen(self, screen);
+		break;
+	}
+	default:
+		g_return_if_reached();
+	}
+}
+
+static void xdk_window_constructed(GObject * object)
+{
+	G_OBJECT_CLASS(xdk_window_parent_class)->constructed(object);
+	
+	XdkWindowPrivate * priv = XDK_WINDOW(object)->priv;
+	if(! priv->screen) {
+		priv->screen = xdk_get_default_screen();
+	}
+
+	priv->background_color = xdk_screen_get_white(priv->screen);
 }
 
 static void xdk_window_dispose(GObject * object)
@@ -350,7 +403,10 @@ static void xdk_window_finalize(GObject * object)
 
 XdkWindow * xdk_window_new()
 {
-	return XDK_WINDOW(g_object_new(XDK_TYPE_WINDOW, NULL));
+	return g_object_new(
+		XDK_TYPE_WINDOW,
+		"screen", xdk_get_default_screen(),
+		NULL);
 }
 
 static void _xdk_window_set_peer(XdkWindow * self, Window peer, gboolean own_peer)
@@ -358,13 +414,18 @@ static void _xdk_window_set_peer(XdkWindow * self, Window peer, gboolean own_pee
 	g_return_if_fail(self);
 
 	XdkWindowPrivate * priv = self->priv;
+	if(peer == priv->peer) {
+		return;
+	}
+	
 	if(None != priv->peer) {
 		xdk_display_remove_window(priv->display, self);
 	}
+	
 	priv->peer = peer;
 	priv->own_peer = own_peer;
 	
-	if(None != peer) {
+	if(None != priv->peer) {
 		xdk_display_add_window(priv->display, self);
 	}
 }
@@ -930,6 +991,11 @@ gulong xdk_window_event_mask_get(XdkWindow * self)
 	return self->priv->event_mask;
 }
 
+XdkDisplay * xdk_window_get_display(XdkWindow * self)
+{
+	return self->priv->display;
+}
+
 XdkScreen * xdk_window_get_screen(XdkWindow * self)
 {
 	g_return_val_if_fail(self, NULL);
@@ -941,8 +1007,16 @@ void xdk_window_set_screen(XdkWindow * self, XdkScreen * screen)
 {
 	g_return_if_fail(self);
 	g_return_if_fail(screen);
+	
+	XdkWindowPrivate * priv = self->priv;
+	if(screen == priv->screen) {
+		return;
+	}
 
-	self->priv->screen = screen;
+	priv->screen = screen;
+	priv->display = xdk_screen_get_display(screen);
+	
+	// reparent to new root window
 }
 
 void xdk_window_set_wm_protocols(XdkWindow * self, Atom * protocols, gint n_protocols)

@@ -33,8 +33,6 @@ struct _XdkScreen
 
 GType xdk_screen_get_type();
 
-XdkScreen * xdk_screen_new();
-
 Screen * xdk_screen_get_peer(XdkScreen * self);
 
 gint xdk_screen_get_number(XdkScreen * self);
@@ -54,6 +52,10 @@ struct _XdkDisplay * xdk_screen_get_display(XdkScreen * self);
 glong xdk_screen_get_event_mask(XdkScreen * self);
 
 struct _XdkWindow * xdk_screen_get_root_window(XdkScreen * self);
+
+gulong xdk_screen_get_white(XdkScreen * self);
+
+gulong xdk_screen_get_black(XdkScreen * self);
 
 G_END_DECLS
 
