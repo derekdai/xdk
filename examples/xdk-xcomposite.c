@@ -314,7 +314,7 @@ int main(int argc, char * args[])
 	XdkWindow * src = xdk_window_new();
 	xdk_window_set_size(src, 1280, 720);
 	xdk_window_set_position(src, 500, 300);
-	g_signal_connect(src, "delete", G_CALLBACK(xdk_window_destroy), NULL);
+	g_signal_connect(src, "delete-event", G_CALLBACK(xdk_window_destroy), NULL);
 	g_signal_connect(src, "destroy", G_CALLBACK(xdk_main_quit), NULL);
 	xdk_window_show(src);
 	

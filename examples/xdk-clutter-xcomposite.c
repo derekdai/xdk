@@ -116,7 +116,7 @@ gint main(gint argc, gchar * args[])
 	}
 	
 	xdk_disable_event_retrieval();
-	xdk_set_default_xdisplay(clutter_x11_get_default_display());
+	xdk_set_xdisplay(clutter_x11_get_default_display());
 	xdk_init(& argc, & args);
 
 	XdkDisplay * display = xdk_display_get_default();

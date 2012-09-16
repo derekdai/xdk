@@ -5,7 +5,7 @@ int main(int argc, char * args[])
 	xdk_init(& argc, & args);
 	XdkDisplay * display = xdk_display_get_default();
 	g_message("Default display '%s' has %d screens, vendor is %s, version %d",
-		xdk_display_get_name(display),
+		xdk_display_get_display_string(display),
 		xdk_display_get_n_screens(display),
 		xdk_display_get_vendor(display),
 		xdk_display_get_release(display));

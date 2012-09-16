@@ -19,7 +19,7 @@ int main(int argc, char * args[])
 	clutter_init(& argc, & args);
 
 	xdk_disable_event_retrieval();
-	xdk_set_default_xdisplay(clutter_x11_get_default_display());
+	xdk_set_xdisplay(clutter_x11_get_default_display());
 	xdk_init(& argc, & args);
 	clutter_x11_add_filter(
 		(ClutterX11FilterFunc) on_event,

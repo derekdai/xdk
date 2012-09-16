@@ -15,9 +15,11 @@ struct _XdkDisplayPrivate
 {
 	Display * peer;
 	
+	char * display_string;
+	
 	gint n_screens;
 	
-	XdkScreen ** screens;
+	GPtrArray * screens;
 	
 	GHashTable * windows;
 	
@@ -27,7 +29,9 @@ struct _XdkDisplayPrivate
 	
 	GList * event_filters;
 	
-	gboolean own_peer;
+	gboolean own_peer : 1;
+	
+	gboolean event_retrieval_disabled : 1;
 };
 
 struct _XdkDisplaySource
@@ -48,6 +52,18 @@ enum {
 	SIGNAL_DISCONNECT,
 	SIGNAL_MAX,
 };
+
+enum {
+	PROP_PEER = 1,
+	PROP_DISPLAY_STRING,
+	PROP_EVENT_RETRIEVAL_DISABLED
+};
+
+static void xdk_display_set_property(
+	GObject * object,
+	guint property_id,
+	const GValue * value,
+	GParamSpec * pspec);
 
 static void xdk_display_dispose(GObject * object);
 
@@ -75,9 +91,7 @@ G_DEFINE_TYPE(XdkDisplay, xdk_display, G_TYPE_OBJECT);
 
 static guint signals[SIGNAL_MAX] = { 0, };
 
-static XdkDisplay * xdk_default_display = NULL;
-
-static Display * xdk_deafult_xdisplay = NULL;
+volatile XdkDisplay * xdk_default_display = NULL;
 
 static GError * xdk_last_error = NULL;
 
@@ -86,6 +100,7 @@ static gboolean xdk_dump_error = FALSE;
 void xdk_display_class_init(XdkDisplayClass * clazz)
 {
 	GObjectClass * gobject_clazz = G_OBJECT_CLASS(clazz);
+	gobject_clazz->set_property = xdk_display_set_property;
 	gobject_clazz->dispose = xdk_display_dispose;
 	gobject_clazz->finalize = xdk_display_finalize;
 	
@@ -99,7 +114,28 @@ void xdk_display_class_init(XdkDisplayClass * clazz)
 		g_cclosure_marshal_VOID__POINTER,
 		G_TYPE_NONE, 0);
 		
-	g_type_class_add_private(clazz, sizeof(XdkDisplayPrivate));
+	g_object_class_install_property(
+		gobject_clazz,
+		PROP_PEER,
+		g_param_spec_pointer(
+			"peer", "", "",
+			G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+	
+	g_object_class_install_property(
+		gobject_clazz,
+		PROP_DISPLAY_STRING,
+		g_param_spec_string(
+			"display-string", "", "",
+			NULL,
+			G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+	
+	g_object_class_install_property(
+		gobject_clazz,
+		PROP_EVENT_RETRIEVAL_DISABLED,
+		g_param_spec_boolean(
+			"event-retreival-disabled", "", "",
+			FALSE,
+			G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 	
 	XDK_ATOM_WM_DELETE_WINDOW = g_quark_from_static_string("WM_DELETE_WINDOW");
 	
@@ -107,41 +143,74 @@ void xdk_display_class_init(XdkDisplayClass * clazz)
 		xdk_dump_error = TRUE;
 		XSetErrorHandler(xdk_display_default_error_handler);
 	}
+	
+	g_type_class_add_private(clazz, sizeof(XdkDisplayPrivate));
 }
 
 static void xdk_display_init(XdkDisplay * self)
 {
-	self->priv = XDK_DISPLAY_GET_PRIVATE(self);
+	XdkDisplayPrivate * priv = XDK_DISPLAY_GET_PRIVATE(self);
+	self->priv = priv;
+
+	priv->windows = g_hash_table_new_full(
+		g_direct_hash, g_direct_equal,
+		NULL, (GDestroyNotify) g_object_unref);
+		
+	priv->screens = g_ptr_array_new_with_free_func(g_object_unref);
 }
 
-gboolean xdk_display_open(XdkDisplay * self, const char * display_string)
+static void xdk_display_set_property(
+	GObject * object,
+	guint property_id,
+	const GValue * value,
+	GParamSpec * pspec)
+{
+	XdkDisplayPrivate * priv = XDK_DISPLAY(object)->priv;
+	
+	switch(property_id) {
+	case PROP_PEER:
+		priv->peer = g_value_get_pointer(value);
+		break;
+	case PROP_DISPLAY_STRING:
+		priv->display_string = g_value_get_string(value)
+			? g_value_dup_string(value)
+			: g_strdup(g_getenv("DISPLAY"));
+		break;
+	case PROP_EVENT_RETRIEVAL_DISABLED:
+		priv->event_retrieval_disabled = g_value_get_boolean(value);
+		break;
+	}
+}
+
+gboolean xdk_display_open(XdkDisplay * self)
 {
 	g_return_val_if_fail(self, FALSE);
-	XdkDisplayPrivate * priv = self->priv;
-	g_return_val_if_fail(! priv->peer, FALSE);
 	
-	if(! xdk_default_display && xdk_deafult_xdisplay) {
-		priv->peer = xdk_deafult_xdisplay;
-	}
-	else {
-		priv->peer = XOpenDisplay(display_string);
-		if(! priv->peer) {
-			goto end;
-		}
+	XdkDisplayPrivate * priv = self->priv;
+	
+	if(! priv->peer) {
+		priv->peer = XOpenDisplay(priv->display_string);
 		priv->own_peer = TRUE;
+	}
+	if(! priv->peer) {
+		goto end;
 	}
 	
 	priv->n_screens = XScreenCount(priv->peer);
-	priv->screens = g_malloc0(sizeof(XdkScreen *) * priv->n_screens);
-	priv->windows = g_hash_table_new(g_direct_hash, g_direct_equal);
 	
 	int i;
 	for(i = 0; i < priv->n_screens; i ++) {
-		priv->screens[i] = g_object_new(
-			XDK_TYPE_SCREEN,
-			"peer", XScreenOfDisplay(priv->peer, i),
-			"display", self,
-			NULL);
+		g_ptr_array_add(
+			priv->screens,
+			g_object_new(
+				XDK_TYPE_SCREEN,
+				"peer", XScreenOfDisplay(priv->peer, i),
+				"display", self,
+				NULL));
+	}
+	
+	if(! priv->event_retrieval_disabled) {
+		xdk_display_add_watch(self);
 	}
 
 	Atom atom = XInternAtom(priv->peer, "WM_DELETE_WINDOW", FALSE);
@@ -149,35 +218,40 @@ gboolean xdk_display_open(XdkDisplay * self, const char * display_string)
 		G_OBJECT(self),
 		XDK_ATOM_WM_DELETE_WINDOW,
 		GUINT_TO_POINTER(atom));
-		
+	
 	if(g_getenv("XDK_DUMP_EVENT")) {
 		xdk_display_add_event_filter(
 			self,
 			(XdkEventFilter) xdk_display_dump_event,
 			NULL);
 	}
+
+	goto end;
 	
+close_display:
+	XCloseDisplay(priv->peer);
+	priv->peer = NULL;
 end:
 	return NULL != priv->peer;
 }
 
 static void xdk_display_dispose(GObject * object)
 {
-	XdkDisplayPrivate * priv = XDK_DISPLAY(object)->priv;
+	XdkDisplay * self = XDK_DISPLAY(object);
+	XdkDisplayPrivate * priv = self->priv;
 	
-	int i = 0;
-	for(; i < priv->n_screens; i ++) {
-		if(! priv->screens[i]) {
-			continue;
-		}
-		
-		g_object_unref(priv->screens[i]);
-	}
+	xdk_display_remove_watch(self);
+	
+	g_ptr_array_remove_range(priv->screens, 0, priv->screens->len);
 }
 
 static void xdk_display_finalize(GObject * object)
 {
 	XdkDisplayPrivate * priv = XDK_DISPLAY(object)->priv;
+	
+	if(priv->display_string) {
+		g_free(priv->display_string);
+	}
 
 	g_free(priv->screens);
 	
@@ -188,25 +262,13 @@ static void xdk_display_finalize(GObject * object)
 	G_OBJECT_CLASS(xdk_display_parent_class)->finalize(object);
 }
 
-void _xdk_display_init_default()
-{
-	if(xdk_default_display) {
-		g_error("Default XdkDisplay already initialized");
-	}
-	
-	xdk_default_display = g_object_new(XDK_TYPE_DISPLAY, NULL);
-	if(! xdk_display_open(xdk_default_display, g_getenv("DISPLAY"))) {
-		g_error("Failed to open default display");
-	}
-}
-
 XdkDisplay * xdk_display_get_default()
 {
 	if(G_UNLIKELY(! xdk_default_display)) {
 		g_error("Call xdk_init() to initialize Xdk first");
 	}
 	
-	return xdk_default_display;
+	return (XdkDisplay *) xdk_default_display;
 }
 
 Display * xdk_display_get_peer(XdkDisplay * self)
@@ -216,11 +278,11 @@ Display * xdk_display_get_peer(XdkDisplay * self)
 	return self->priv->peer;
 }
 
-const gchar * xdk_display_get_name(XdkDisplay * self)
+const gchar * xdk_display_get_display_string(XdkDisplay * self)
 {
 	g_return_val_if_fail(self, NULL);
 	
-	return DisplayString(self->priv->peer);
+	return self->priv->display_string;
 }
 
 gint xdk_display_get_n_screens(XdkDisplay * self)
@@ -235,7 +297,8 @@ XdkScreen * xdk_display_get_default_screen(XdkDisplay * self)
 	g_return_val_if_fail(self, NULL);
 
 	XdkDisplayPrivate * priv = self->priv;
-	return priv->screens[DefaultScreen(priv->peer)];
+	
+	return g_ptr_array_index(priv->screens, DefaultScreen(priv->peer));
 }
 
 void xdk_display_flush(XdkDisplay * self)
@@ -343,7 +406,7 @@ void xdk_display_add_window(XdkDisplay * self, XdkWindow * window)
 	g_hash_table_insert(
 		self->priv->windows,
 		GUINT_TO_POINTER(xwin),
-		window);
+		g_object_ref(window));
 }
 
 XdkWindow * xdk_display_lookup_window(XdkDisplay * self, Window xwindow)
@@ -367,11 +430,11 @@ void xdk_display_remove_window(XdkDisplay * self, XdkWindow * window)
 	Window xwin = xdk_window_get_peer(window);
 	g_return_if_fail(None != xwin);
 	
-	g_hash_table_remove(self->priv->windows, GUINT_TO_POINTER(xwin));
 	g_signal_handlers_disconnect_by_func(
 		window,
 		xdk_display_window_destroyed,
 		self);
+	g_hash_table_remove(self->priv->windows, GUINT_TO_POINTER(xwin));
 }
 
 int xdk_display_get_connection_number(XdkDisplay * self)
@@ -488,6 +551,7 @@ void xdk_display_remove_watch(XdkDisplay * self)
 	}
 	
 	g_source_remove(priv->event_watch_id);
+	priv->event_watch_id = 0;
 }
 
 GSource * xdk_display_watch_source_new(XdkDisplay * self)
@@ -571,7 +635,7 @@ GList * xdk_display_list_screen(XdkDisplay * self)
 	int i = 0;
 	GList * screens = NULL;
 	for(; i < xdk_display_get_n_screens(self); i ++) {
-		screens = g_list_append(screens, self->priv->screens[i]);
+		screens = g_list_append(screens, g_ptr_array_index(self->priv->screens, i));
 	}
 	
 	return screens;
@@ -580,17 +644,16 @@ GList * xdk_display_list_screen(XdkDisplay * self)
 XdkScreen * xdk_display_lookup_screen(XdkDisplay * self, Screen * screen)
 {
 	g_return_val_if_fail(self, NULL);
+	g_return_val_if_fail(screen, NULL);
 	
-	int i = 0;
-	XdkScreen * xdk_screen = NULL;
-	for(; i < xdk_display_get_n_screens(self); i ++) {
-		if(xdk_screen_get_peer(self->priv->screens[i]) == screen) {
-			xdk_screen = self->priv->screens[i];
-			break;
-		}
+	XdkDisplayPrivate * priv = self->priv;
+	gint screen_number = XScreenNumberOfScreen(self->priv->peer);
+	
+	if(screen_number <= 0 || screen_number >= priv->screens->len) {
+		return NULL;
 	}
 	
-	return xdk_screen;
+	return g_ptr_array_index(priv->screens, screen_number);
 }
 
 gint xdk_display_get_n_windows(XdkDisplay * self)
@@ -693,14 +756,6 @@ gint xdk_untrap_error(GError ** error)
 Display * xdk_get_default_xdisplay()
 {
 	return xdk_display_get_default()->priv->peer;
-}
-
-void xdk_set_default_xdisplay(Display * display)
-{
-	g_return_if_fail(display);
-	g_return_if_fail(! xdk_default_display);
-	
-	xdk_deafult_xdisplay = display;
 }
 
 int xdk_display_grab_server(XdkDisplay * self)

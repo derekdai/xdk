@@ -19,6 +19,12 @@ G_BEGIN_DECLS
 
 void xdk_disable_event_retrieval();
 
+gboolean xdk_is_event_retrieval_disabled();
+
+void xdk_set_xdisplay(Display * display);
+
+Display * xdk_get_xdisplay();
+
 void xdk_init(int * argc, char ** args[]);
 
 void xdk_main();

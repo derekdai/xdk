@@ -44,17 +44,13 @@ extern GQuark XDK_ATOM_WM_DELETE_WINDOW;
 
 GType xdk_display_get_type();
 
-gboolean xdk_display_init_once();
-
 XdkDisplay * xdk_display_get_default();
 
-gboolean xdk_display_open(XdkDisplay * self, const char * display_string);
+gboolean xdk_display_open(XdkDisplay * self);
 
 Display * xdk_display_get_peer(XdkDisplay * self);
 
 Display * xdk_get_default_xdisplay();
-
-void xdk_set_default_xdisplay(Display * display);
 
 const char * xdk_display_get_vendor(XdkDisplay * self);
 
