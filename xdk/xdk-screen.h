@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include <X11/Xlib.h>
+#include "xdk-visual.h"
 
 G_BEGIN_DECLS
 
@@ -43,19 +44,21 @@ gint xdk_screen_get_height(XdkScreen * self);
 
 gint xdk_screen_get_default_depth(XdkScreen * self);
 
-//XdkGc * xdk_screen_get_default_gc(XdkScreen * self);
-
-//XdkVisual * xdk_screen_get_default_visual(XdkScreen * self);
-
 struct _XdkDisplay * xdk_screen_get_display(XdkScreen * self);
-
-glong xdk_screen_get_event_mask(XdkScreen * self);
 
 struct _XdkWindow * xdk_screen_get_root_window(XdkScreen * self);
 
 gulong xdk_screen_get_white(XdkScreen * self);
 
 gulong xdk_screen_get_black(XdkScreen * self);
+
+XdkVisual * xdk_screen_get_default_visual(XdkScreen * self);
+
+gboolean xdk_screen_is_use_backing_store(XdkScreen * self);
+
+gboolean xdk_screen_is_save_unders(XdkScreen * self);
+
+XdkVisual * xdk_screen_get_rgba_visual(XdkScreen * self);
 
 G_END_DECLS
 

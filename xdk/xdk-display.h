@@ -103,21 +103,27 @@ void xdk_display_remove_event_filter(
 
 XdkScreen * xdk_display_get_default_screen(XdkDisplay * self);
 
+XdkScreen * xdk_display_get_screen(XdkDisplay * self, gint screen_number);
+
 gint xdk_display_get_n_screens(XdkDisplay * self);
 
-GList * xdk_display_list_screens(XdkDisplay * display);
+GList * xdk_display_list_screens(XdkDisplay * self);
 
 gint xdk_display_get_n_windows(XdkDisplay * self);
 
-GList * xdk_display_list_windows(XdkDisplay * display);
+GList * xdk_display_list_windows(XdkDisplay * self);
 
-GList * xdk_display_list_xwindows(XdkDisplay * display);
+GList * xdk_display_list_xwindows(XdkDisplay * self);
 
-XdkScreen * xdk_display_lookup_screen(XdkDisplay * display, Screen * screen);
+XdkScreen * xdk_display_lookup_screen(XdkDisplay * self, Screen * screen);
 
-int xdk_display_grab_server(XdkDisplay * display);
+XdkVisual * xdk_display_lookup_visual(XdkDisplay * self, Visual * visual);
 
-int xdk_display_ungrab_server(XdkDisplay * display);
+XdkVisual * xdk_display_lookup_visual_by_id(XdkDisplay * self, VisualID id);
+
+int xdk_display_grab_server(XdkDisplay * self);
+
+int xdk_display_ungrab_server(XdkDisplay * self);
 
 XdkScreen * xdk_get_default_screen();
 

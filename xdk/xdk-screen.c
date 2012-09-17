@@ -12,11 +12,11 @@ struct _XdkScreenPrivate
 	
 	XdkDisplay * display;
 	
-	XdkVisual * default_visual;
-	
-	XdkGc * default_gc;
-	
 	XdkWindow * root;
+	
+	GHashTable * visuals;
+	
+	XdkVisual * argb_visual;
 };
 
 enum {
@@ -49,9 +49,8 @@ static void xdk_screen_class_init(XdkScreenClass * clazz)
 	g_object_class_install_property(
 		gobject_class,
 		PROP_PEER,
-		g_param_spec_ulong(
+		g_param_spec_pointer(
 			"peer", "", "",
-			0, G_MAXULONG, 0,
 			G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 	
 	g_object_class_install_property(
@@ -67,7 +66,12 @@ static void xdk_screen_class_init(XdkScreenClass * clazz)
 
 static void xdk_screen_init(XdkScreen * self)
 {
-	self->priv = XDK_SCREEN_GET_PRIVATE(self);
+	XdkScreenPrivate * priv = XDK_SCREEN_GET_PRIVATE(self);
+	self->priv = priv;
+	
+	priv->visuals = g_hash_table_new_full(
+		g_direct_hash, g_direct_equal,
+		NULL, (GDestroyNotify) g_object_unref);
 }
 
 static void xdk_screen_set_property(
@@ -78,7 +82,7 @@ static void xdk_screen_set_property(
 {
 	switch(property_id) {
 	case PROP_PEER:
-		XDK_SCREEN(object)->priv->peer = g_value_get_ulong(value);
+		XDK_SCREEN(object)->priv->peer = g_value_get_pointer(value);
 		break;
 	case PROP_DISPLAY:
 		XDK_SCREEN(object)->priv->display = g_value_get_object(value);
@@ -92,12 +96,48 @@ static void xdk_screen_constructed(GObject * object)
 {
 	G_OBJECT_CLASS(xdk_screen_parent_class)->constructed(object);
 	
-	XdkScreenPrivate * priv = XDK_SCREEN(object)->priv;
+	XdkScreen * self = XDK_SCREEN(object);
+	XdkScreenPrivate * priv = self->priv;
 	
 	priv->root = g_object_new(XDK_TYPE_WINDOW, "screen", object, NULL);
 	xdk_window_set_foreign_peer(
 		priv->root,
 		RootWindowOfScreen(priv->peer));
+		
+	int n_visual_infos;
+	XVisualInfo * visual_infos = XGetVisualInfo(
+		xdk_display_get_peer(priv->display),
+		0, NULL,
+		& n_visual_infos);
+	if(! visual_infos) {
+		g_warning("No visual information found for screen %d",
+			xdk_screen_get_number(self));
+		return;
+	}
+	
+	int screen_number = xdk_screen_get_number(self);
+	for(-- n_visual_infos; n_visual_infos >= 0; n_visual_infos --) {
+		if(screen_number != visual_infos[n_visual_infos].screen) {
+			continue;
+		}
+		
+		XdkVisual * visual = xdk_visual_new(
+			& visual_infos[n_visual_infos],
+			self);
+		g_hash_table_insert(
+			priv->visuals,
+			visual_infos[n_visual_infos].visual,
+			visual);
+			
+		if(32 == visual_infos[n_visual_infos].depth &&
+			0xff0000 == visual_infos[n_visual_infos].red_mask &&
+				0x00ff00 == visual_infos[n_visual_infos].green_mask &&
+				0x0000ff == visual_infos[n_visual_infos].blue_mask) {
+			priv->argb_visual = visual;
+		}
+	}
+	
+	XFree(visual_infos);
 }
 
 static void xdk_screen_dispose(GObject * object)
@@ -108,10 +148,16 @@ static void xdk_screen_dispose(GObject * object)
 		g_object_unref(priv->root);
 		priv->root = NULL;
 	}
+	
+	g_hash_table_remove_all(priv->visuals);
 }
 
 static void xdk_screen_finalize(GObject * object)
 {
+	XdkScreenPrivate * priv = XDK_SCREEN(object)->priv;
+	
+	g_hash_table_unref(priv->visuals);
+	
 	G_OBJECT_CLASS(xdk_screen_parent_class)->finalize(object);
 }
 
@@ -169,32 +215,11 @@ gint xdk_screen_get_default_depth(XdkScreen * self)
 	return XDefaultDepthOfScreen(self->priv->peer);
 }
 
-XdkGc * xdk_screen_get_default_gc(XdkScreen * self)
-{
-	g_return_val_if_fail(self, NULL);
-	
-	return self->priv->default_gc;
-}
-
-XdkVisual * xdk_screen_get_default_visual(XdkScreen * self)
-{
-	g_return_val_if_fail(self, NULL);
-	
-	return self->priv->default_visual;
-}
-
 XdkDisplay * xdk_screen_get_display(XdkScreen * self)
 {
 	g_return_val_if_fail(self, NULL);
 	
 	return self->priv->display;
-}
-
-glong xdk_screen_get_event_mask(XdkScreen * self)
-{
-	g_return_val_if_fail(self, 0);
-	
-	return XEventMaskOfScreen(self->priv->peer);
 }
 
 XdkWindow * xdk_screen_get_root_window(XdkScreen * self)
@@ -225,4 +250,54 @@ gulong xdk_screen_get_black(XdkScreen * self)
 	g_return_val_if_fail(self, (gulong) 0);
 	
 	return BlackPixelOfScreen(self->priv->peer);
+}
+
+gboolean xdk_screen_is_use_backing_store(XdkScreen * self)
+{
+	g_return_val_if_fail(self, FALSE);
+	
+	return NotUseful != DoesBackingStore(self->priv->peer);
+}
+
+gboolean xdk_screen_is_save_unders(XdkScreen * self)
+{
+	g_return_val_if_fail(self, FALSE);
+	
+	return True == XDoesSaveUnders(self->priv->peer);
+}
+
+XdkVisual * xdk_screen_get_default_visual(XdkScreen * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	XdkScreenPrivate * priv = self->priv;
+	
+	return g_hash_table_lookup(priv->visuals, DefaultVisualOfScreen(priv->peer));
+}
+
+XdkVisual * xdk_screen_get_rgba_visual(XdkScreen * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return self->priv->argb_visual;
+}
+
+XdkVisual * xdk_screen_lookup_visual(XdkScreen * self, Visual * visual)
+{
+	g_return_val_if_fail(self, NULL);
+	g_return_val_if_fail(visual, NULL);
+	
+	return g_hash_table_lookup(self->priv->visuals, visual);
+}
+
+XdkVisual * xdk_screen_lookup_visual_by_id(XdkScreen * self, VisualID id)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	Visual * visual = _XVIDtoVisual(self->priv->peer, id);
+	if(! visual) {
+		return NULL;
+	}
+	
+	return xdk_screen_lookup_visual(self, visual);
 }

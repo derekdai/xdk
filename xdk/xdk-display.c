@@ -1,5 +1,6 @@
 #include "xdk-display.h"
 #include "xdk-screen.h"
+#include <X11/Xlibint.h>
 
 #define XDK_DISPLAY_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE(o, XDK_TYPE_DISPLAY, XdkDisplayPrivate))
 
@@ -208,7 +209,7 @@ gboolean xdk_display_open(XdkDisplay * self)
 				"display", self,
 				NULL));
 	}
-	
+
 	if(! priv->event_retrieval_disabled) {
 		xdk_display_add_watch(self);
 	}
@@ -242,6 +243,8 @@ static void xdk_display_dispose(GObject * object)
 	
 	xdk_display_remove_watch(self);
 	
+	g_hash_table_remove_all(priv->windows);
+	
 	g_ptr_array_remove_range(priv->screens, 0, priv->screens->len);
 }
 
@@ -252,7 +255,9 @@ static void xdk_display_finalize(GObject * object)
 	if(priv->display_string) {
 		g_free(priv->display_string);
 	}
-
+	
+	g_hash_table_unref(priv->windows);
+	
 	g_free(priv->screens);
 	
 	if(priv->peer && priv->own_peer) {
@@ -294,11 +299,14 @@ gint xdk_display_get_n_screens(XdkDisplay * self)
 
 XdkScreen * xdk_display_get_default_screen(XdkDisplay * self)
 {
+	return xdk_display_get_screen(self, DefaultScreen(self->priv->peer));
+}
+
+XdkScreen * xdk_display_get_screen(XdkDisplay * self, gint screen_number)
+{
 	g_return_val_if_fail(self, NULL);
 
-	XdkDisplayPrivate * priv = self->priv;
-	
-	return g_ptr_array_index(priv->screens, DefaultScreen(priv->peer));
+	return g_ptr_array_index(self->priv->screens, screen_number);
 }
 
 void xdk_display_flush(XdkDisplay * self)
@@ -647,7 +655,7 @@ XdkScreen * xdk_display_lookup_screen(XdkDisplay * self, Screen * screen)
 	g_return_val_if_fail(screen, NULL);
 	
 	XdkDisplayPrivate * priv = self->priv;
-	gint screen_number = XScreenNumberOfScreen(self->priv->peer);
+	gint screen_number = XScreenNumberOfScreen(screen);
 	
 	if(screen_number <= 0 || screen_number >= priv->screens->len) {
 		return NULL;
