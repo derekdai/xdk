@@ -939,6 +939,7 @@ void xdk_window_set_background_color(XdkWindow * self, gulong background_color)
 		xdk_display_get_peer(priv->display),
 		priv->peer,
 		background_color);
+	XClearWindow(xdk_display_get_peer(priv->display), priv->peer);
 }
 
 gulong xdk_window_get_background_color(XdkWindow * self)

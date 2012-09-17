@@ -14,17 +14,20 @@ ClutterX11FilterReturn on_event(
 	ClutterEvent * cev,
 	XdkDisplay * display)
 {
+	ClutterX11FilterReturn result = CLUTTER_X11_FILTER_CONTINUE;
 	switch(xev->type) {
+	case ConfigureNotify:
+		
+		break;
 	case DestroyNotify:
 		xev->xany.window = xdk_window_get_peer(xdk_get_default_root_window());
+		result = CLUTTER_X11_FILTER_REMOVE;
 		break;
 	}
 	
-	if(xdk_display_handle_event(display, xev)) {
-		return CLUTTER_X11_FILTER_REMOVE;
-	}
+	xdk_display_handle_event(display, xev);
 	
-	return CLUTTER_X11_FILTER_CONTINUE;
+	return result;
 }
 
 ClutterActor * lookup_actor(Window window, gboolean create)
@@ -72,6 +75,13 @@ void on_configure_request(XdkWindow * root, XEvent * event, XdkDisplay * display
 	ClutterActor * actor = lookup_actor(e->window, TRUE);
 	clutter_actor_set_position(actor, e->x, e->y);
 	clutter_actor_set_size(actor, e->width, e->height);
+	if(None != e->above) {
+		ClutterActor * sibling = lookup_actor(e->above, TRUE);
+		clutter_actor_set_child_above_sibling(
+			clutter_actor_get_parent(actor),
+			actor,
+			sibling);
+	}
 }
 
 void on_map_request(XdkWindow * root, XEvent * event, XdkDisplay * display)
@@ -85,6 +95,7 @@ void on_map_request(XdkWindow * root, XEvent * event, XdkDisplay * display)
 
 void on_resize_request(XdkWindow * root, XEvent * event, XdkDisplay * display)
 {
+	g_message("on_resize_request");
 }
 
 void on_unmap_notify(XdkWindow * root, XEvent * event, XdkDisplay * display)
@@ -138,7 +149,8 @@ gint main(gint argc, gchar * args[])
 	xdk_window_select_input(
 		root,
 		XDK_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
-		XDK_EVENT_MASK_STRUCTURE_NOTIFY);
+		XDK_EVENT_MASK_STRUCTURE_NOTIFY |
+		XDK_EVENT_MASK_VISIBILITY_CHANGE);
 	xdk_flush();
 	
 	GError * error = NULL;

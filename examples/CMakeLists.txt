@@ -54,3 +54,6 @@ target_link_libraries( xdk-clutter-mixup_c xdk ${CLUTTER_LIBRARIES} )
 
 add_executable( xdk-clutter-xcomposite xdk-clutter-xcomposite )
 target_link_libraries( xdk-clutter-xcomposite xdk ${CLUTTER_LIBRARIES} )
+
+add_executable( xdk-rgba-visual xdk-rgba-visual )
+target_link_libraries( xdk-rgba-visual xdk ${CLUTTER_LIBRARIES} )
