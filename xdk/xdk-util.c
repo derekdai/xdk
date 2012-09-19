@@ -495,6 +495,26 @@ static void client_message_event_to_string(XEvent * event, gchar * buf, gssize b
 			"\n\tdata.l[0](protocols)=%s",
 			xdk_display_atom_to_name(display, e->data.l[0]));
 	}
+	else if(! g_strcmp0("_NET_WM_STATE", message_type)) {
+		g_snprintf(buf + len, buf_size - len,
+			"\n\tdata.l[0](action)=%s\n\tdata.l[1](1st prop)=%s\n\tdata.l[2](2nd prop)=%s\n\tdata.l[3](source indication)=%s",
+			e->data.l[0] == 0
+				? "remove"
+				: e->data.l[0] == 1
+					? "add"
+					: e->data.l[0] == 2
+						? "toggle"
+						: "unknown",
+			xdk_display_atom_to_name(display, e->data.l[1]),
+			e->data.l[2] == 0
+				? ""
+				: xdk_display_atom_to_name(display, e->data.l[2]),
+			e->data.l[3] == 1
+				? "normal application"
+				: e->data.l[2] == 2
+					? "pager"
+					: "legacy");
+	}
 }
 
 static void mapping_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
