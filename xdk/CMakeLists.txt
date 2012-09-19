@@ -12,4 +12,10 @@ add_library(
 	xdk-util
 )
 
-target_link_libraries( xdk ${X11_LIBRARIES} ${GLIB_LIBRARIES} )
+target_link_libraries(
+	xdk
+	${XCOMPOSITE_LIBRARIES}
+	${XDAMAGE_LIBRARIES}
+	${X11_LIBRARIES}
+	${GLIB_LIBRARIES}
+)
