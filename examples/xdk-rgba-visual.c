@@ -105,7 +105,7 @@ int main(int argc, char * args[])
 	XFlush(display);
 	
 	g_usleep(3 * G_USEC_PER_SEC);
-	/*
+	*/
 
 	return 0;
 }
