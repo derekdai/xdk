@@ -34,7 +34,6 @@ struct _ExtensionInfo
 };
 
 static XEventToStringFunc xdk_util_event_get_to_string_func(XEvent * event);
-static void damage_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
 static void motion_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
 static void crossing_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
 static void focus_change_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
@@ -70,51 +69,54 @@ static const char * window_class_to_string(gint win_class);
 static const char * backing_store_to_string(gint backing_store);
 static const char * gravity_to_string(gint gravity);
 static const char * map_state_to_string(gint map_state);
+static void damage_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
+static void fixes_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
 
 static char xdk_util_buf[4096];
 
 static const XEventInfo event_infos[] = {
 	{ "Unknown", NULL },
 	{ "Unknown", NULL },
-	{ "XDK_EVENT_KEY_PRESS (KeyPress)", motion_event_to_string },
-	{ "XDK_EVENT_KEY_RELEASE (KeyRelease)", motion_event_to_string },
-	{ "XDK_EVENT_BUTTON_PRESS (ButtonPress)", motion_event_to_string },
-	{ "XDK_EVENT_BUTTON_RELEASE (ButtonRelease)", motion_event_to_string },
-	{ "XDK_EVENT_MOTION (MotionNotify)", motion_event_to_string },
-	{ "XDK_EVENT_ENTER (EnterNotify)", crossing_event_to_string },
-	{ "XDK_EVENT_LEAVE (LeaveNotify)", crossing_event_to_string },
-	{ "XDK_EVENT_FOCUS_IN (FocusIn)", focus_change_event_to_string },
-	{ "XDK_EVENT_FOCUS_OUT (FocusOut)", focus_change_event_to_string },
-	{ "XDK_EVENT_KEYMAP (KeymapNotify)", keymap_event_to_string },
-	{ "XDK_EVENT_EXPOSE (Expose)", expose_event_to_string },
-	{ "XDK_EVENT_GRAPHICS_EXPOSE (GraphicsExpose)", graphics_expose_event_to_string },
-	{ "XDK_EVENT_NO_EXPOSE (NoExpose)", no_expose_event_to_string },
-	{ "XDK_EVENT_VISIBILITY (VisibilityNotify)", visibility_event_to_string },
-	{ "XDK_EVENT_CREATE (CreateNotify)", create_window_event_to_string },
-	{ "XDK_EVENT_DESTROY (DestroyNotify)", destroy_window_event_to_string },
-	{ "XDK_EVENT_UNMAP (UnmapNotify)", unmap_event_to_string },
-	{ "XDK_EVENT_MAP (MapNotify)", map_event_to_string },
-	{ "XDK_EVENT_MAP_REQUEST (MapRequest)", map_request_event_to_string },
-	{ "XDK_EVENT_REPARENT (ReparentNotify)", reparent_event_to_string },
-	{ "XDK_EVENT_CONFIGURE (ConfigureNotify)", configure_event_to_string },
-	{ "XDK_EVENT_CONFIGURE_REQUEST (ConfigureRequest)", configure_request_event_to_string },
-	{ "XDK_EVENT_GRAVITY (GravityNotify)", gravity_event_to_string },
-	{ "XDK_EVENT_RESIZE_REQUEST (ResizeRequest)", resize_request_event_to_string },
-	{ "XDK_EVENT_CIRCULATE (CirculateNotify)", circulate_event_to_string },
-	{ "XDK_EVENT_CIRCULATE_REQUEST = CirculateRequest)", circulate_request_event_to_string },
-	{ "XDK_EVENT_PROPERTY (PropertyNotify)", property_event_to_string },
-	{ "XDK_EVENT_SELECTION_CLEAR (SelectionClear)", selection_clear_event_to_string },
-	{ "XDK_EVENT_SELECTION_REQUEST (SelectionRequest)", selection_request_event_to_string },
-	{ "XDK_EVENT_SELECTION (SelectionNotify)", selection_event_to_string },
-	{ "XDK_EVENT_COLORMAP (ColormapNotify)", colormap_event_to_string },
-	{ "XDK_EVENT_CLIENT_MESSAGE (ClientMessage)", client_message_event_to_string },
-	{ "XDK_EVENT_MAPPING (MappingNotify)", mapping_event_to_string },
-	{ "XDK_EVENT_GENERIC (GenericEvent)", generic_event_to_string },
+	{ "KeyPress", motion_event_to_string },
+	{ "KeyRelease", motion_event_to_string },
+	{ "ButtonPress", motion_event_to_string },
+	{ "ButtonRelease", motion_event_to_string },
+	{ "MotionNotify", motion_event_to_string },
+	{ "EnterNotify", crossing_event_to_string },
+	{ "LeaveNotify", crossing_event_to_string },
+	{ "FocusIn", focus_change_event_to_string },
+	{ "FocusOut", focus_change_event_to_string },
+	{ "KeymapNotify", keymap_event_to_string },
+	{ "Expose", expose_event_to_string },
+	{ "GraphicsExpose", graphics_expose_event_to_string },
+	{ "NoExpose", no_expose_event_to_string },
+	{ "VisibilityNotify", visibility_event_to_string },
+	{ "CreateNotify", create_window_event_to_string },
+	{ "DestroyNotify", destroy_window_event_to_string },
+	{ "UnmapNotify", unmap_event_to_string },
+	{ "MapNotify", map_event_to_string },
+	{ "MapRequest", map_request_event_to_string },
+	{ "ReparentNotify", reparent_event_to_string },
+	{ "ConfigureNotify", configure_event_to_string },
+	{ "ConfigureRequest", configure_request_event_to_string },
+	{ "GravityNotify", gravity_event_to_string },
+	{ "ResizeRequest", resize_request_event_to_string },
+	{ "CirculateNotify", circulate_event_to_string },
+	{ "CirculateRequest", circulate_request_event_to_string },
+	{ "PropertyNotify", property_event_to_string },
+	{ "SelectionClear", selection_clear_event_to_string },
+	{ "SelectionRequest", selection_request_event_to_string },
+	{ "SelectionNotify", selection_event_to_string },
+	{ "ColormapNotify", colormap_event_to_string },
+	{ "ClientMessage", client_message_event_to_string },
+	{ "MappingNotify", mapping_event_to_string },
+	{ "GenericEvent", generic_event_to_string },
 };
 
 static ExtensionInfo extension_infos[] = {
 	{ "XDamage", XDamageQueryExtension, damage_event_to_string, 0, 0 },
 	{ "XComposite", XCompositeQueryExtension, NULL, 0, 0 },
+	{ "XFixes", XFixesQueryExtension, NULL, 0, 0 },
 };
 
 static void xdk_util_init()
@@ -129,6 +131,7 @@ static void xdk_util_init()
 				display,
 				& extension_infos[i].event_base,
 				& extension_infos[i].error_base);
+			g_message("%s %d %d", extension_infos[i].name, extension_infos[i].event_base, extension_infos[i].error_base);
 		}
 		
 		g_once_init_leave(& initialized, TRUE);
@@ -655,4 +658,8 @@ static void damage_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 		e->damage, e->level, boolean_to_string(e->more),
 		e->area.x, e->area.y, e->area.width, e->area.height,
 		e->geometry.x, e->geometry.y, e->geometry.width, e->geometry.height);
+}
+
+static void fixes_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
+{
 }
