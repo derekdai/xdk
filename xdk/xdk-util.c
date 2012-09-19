@@ -2,10 +2,16 @@
 #include "xdk-display.h"
 #include "xdk-types.h"
 #include <X11/keysym.h>
+#include <X11/extensions/Xcomposite.h>
+#include <X11/extensions/Xdamage.h>
+
+typedef void (* XQueryExtensionFunc)(Display * display, int * event_base, int error_base);
 
 typedef void (* XEventToStringFunc)(XEvent * event, gchar * buf, gssize buf_size);
 
 typedef struct _XEventInfo XEventInfo;
+
+typedef struct _ExtensionInfo ExtensionInfo;
 
 struct _XEventInfo
 {
@@ -14,7 +20,21 @@ struct _XEventInfo
 	XEventToStringFunc to_string_func;
 };
 
+struct _ExtensionInfo
+{
+	const char * name;
+	
+	XQueryExtensionFunc query_extension_func;
+	
+	XEventToStringFunc event_to_string_func;
+
+	int event_base;
+	
+	int error_base;
+};
+
 static XEventToStringFunc xdk_util_event_get_to_string_func(XEvent * event);
+static void damage_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
 static void motion_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
 static void crossing_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
 static void focus_change_event_to_string(XEvent * event, gchar * buf, gssize buf_size);
@@ -52,6 +72,8 @@ static const char * gravity_to_string(gint gravity);
 static const char * map_state_to_string(gint map_state);
 
 static char xdk_util_buf[4096];
+
+static initialized = FALSE;
 
 static const XEventInfo event_infos[] = {
 	{ "Unknown", NULL },
@@ -92,6 +114,29 @@ static const XEventInfo event_infos[] = {
 	{ "XDK_EVENT_GENERIC (GenericEvent)", generic_event_to_string },
 };
 
+static ExtensionInfo extension_infos[] = {
+	{ "XDamage", XDamageQueryExtension, damage_event_to_string, 0, 0 },
+	{ "XComposite", XCompositeQueryExtension, NULL, 0, 0 },
+};
+
+static void xdk_util_init()
+{
+	if(G_LIKELY(initialized)) {
+		return;
+	}
+	
+	Display * display = xdk_display_get_peer(xdk_display_get_default());
+	int i = 0;
+	for(; i < G_N_ELEMENTS(extension_infos); i ++) {
+		extension_infos[i].query_extension_func(
+			display,
+			& extension_infos[i].event_base,
+			& extension_infos[i].error_base);
+	}
+	
+	initialized = TRUE;
+}
+
 void xdk_util_event_dump(XEvent * event)
 {
 	g_printerr("%s\n", xdk_util_event_to_string(event));
@@ -100,6 +145,8 @@ void xdk_util_event_dump(XEvent * event)
 gchar * xdk_util_event_to_string(XEvent * event)
 {
 	g_return_val_if_fail(event, NULL);
+	
+	xdk_util_init();
 	
 	gint len = g_snprintf(
 		xdk_util_buf, sizeof(xdk_util_buf),
@@ -121,20 +168,45 @@ gchar * xdk_util_event_to_string(XEvent * event)
 
 const char * xdk_util_event_get_name(XEvent * event)
 {
-	if(! event || event->type < 2 || event->type >= G_N_ELEMENTS(event_infos)) {
-		return "Unknown";
+	xdk_util_init();
+	
+	const char * name = "Unknown";
+	if(! event) {
+		name = "NULL event";
+	}
+	else if(event->type >= 2 && event->type < G_N_ELEMENTS(event_infos)) {
+		name = event_infos[event->type].name;
+	}
+	else {
+		int i = 0;
+		for(; i < G_N_ELEMENTS(extension_infos); i ++) {
+			if(event->type == extension_infos[i].event_base) {
+				name = extension_infos[i].name;
+				break;
+			}
+		}
 	}
 	
-	return event_infos[event->type].name;
+	return name;
 }
 
 static XEventToStringFunc xdk_util_event_get_to_string_func(XEvent * event)
 {
-	if(! event || event->type < 2 || event->type >= G_N_ELEMENTS(event_infos)) {
+	if(! event) {
 		return NULL;
 	}
+	else if(event->type >= 2 && event->type < G_N_ELEMENTS(event_infos)) {
+		return event_infos[event->type].to_string_func;
+	}
 	
-	return event_infos[event->type].to_string_func;
+	int i = 0;
+	for(; i < G_N_ELEMENTS(extension_infos); i ++) {
+		if(event->type == extension_infos[i].event_base) {
+			return extension_infos[i].event_to_string_func;
+		}
+	}
+	
+	return NULL;
 }
 
 static gint state_to_string(guint state, gchar * buf, gssize buf_size)
@@ -458,16 +530,16 @@ static gint window_to_string(Window window, gchar * buf, gssize buf_size)
 	
 	XdkDisplay * display = xdk_display_get_default();
 	XWindowAttributes attributes;
-	GError * error = NULL;
 	
 	xdk_trap_error();
 	XGetWindowAttributes(
 		xdk_display_get_peer(display),
 		window,
 		& attributes);
+	GError * error = NULL;
 	if(xdk_untrap_error(& error)) {
-		g_warning("%s", error->message);
-		return;
+		g_error_free(error);
+		return g_snprintf(buf, buf_size, "%lu is not a window", window);
 	}
 	
 	return g_snprintf(buf, buf_size,
@@ -575,4 +647,12 @@ const char * xdk_util_window_to_string(Window window)
 	window_to_string(window, xdk_util_buf, sizeof(xdk_util_buf));
 	
 	return xdk_util_buf;
+}
+
+static void damage_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
+{
+	XDamageNotifyEvent * e = (XDamageNotifyEvent *) event;
+	g_snprintf(buf, buf_size,
+		"\n\tdamage=%lu\n\tlevel=%d\n\tmore=%s",
+		e->damage, e->level, boolean_to_string(e->more));
 }
