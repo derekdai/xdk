@@ -38,11 +38,11 @@ ClutterActor * lookup_actor(Window window, gboolean create)
 		actor = clutter_rectangle_new_with_color(clutter_color_get_static(CLUTTER_COLOR_GREEN));
 
 		actor = clutter_x11_texture_pixmap_new_with_window(window);
-		clutter_x11_texture_pixmap_set_automatic(actor, TRUE);
+		clutter_x11_texture_pixmap_set_automatic(CLUTTER_X11_TEXTURE_PIXMAP(actor), TRUE);
 		clutter_actor_hide(actor);
 		clutter_actor_add_child(overlay, actor);
 
-		g_object_set_data(actor, "window", GUINT_TO_POINTER(window));
+		g_object_set_data(G_OBJECT(actor), "window", GUINT_TO_POINTER(window));
 		g_hash_table_insert(win_actor_map, GUINT_TO_POINTER(window), actor);
 	}
 	
@@ -51,7 +51,7 @@ ClutterActor * lookup_actor(Window window, gboolean create)
 
 void remove_actor(Window window)
 {
-	g_hash_table_remove(win_actor_map, window);
+	g_hash_table_remove(win_actor_map, GUINT_TO_POINTER(window));
 }
 
 void on_configure_request(XdkWindow * root, XEvent * event, XdkDisplay * display)
@@ -150,7 +150,10 @@ gint main(gint argc, gchar * args[])
 		root,
 		XDK_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
 		XDK_EVENT_MASK_STRUCTURE_NOTIFY |
-		XDK_EVENT_MASK_VISIBILITY_CHANGE);
+		XDK_EVENT_MASK_VISIBILITY_CHANGE |
+		XDK_EVENT_MASK_BUTTON_PRESS |
+		XDK_EVENT_MASK_BUTTON_RELEASE |
+		XDK_EVENT_MASK_BUTTON1_MOTION);
 	xdk_flush();
 	
 	GError * error = NULL;
@@ -159,7 +162,7 @@ gint main(gint argc, gchar * args[])
 	}
 
 	overlay = clutter_stage_new();
-	clutter_stage_set_use_alpha(overlay, TRUE);
+	clutter_stage_set_use_alpha(CLUTTER_STAGE(overlay), TRUE);
 
 	// list all windows and create coresponding actors
 	xdk_display_grab_server(display);
@@ -204,13 +207,14 @@ gint main(gint argc, gchar * args[])
 	// create stage on top of overlay
 	int x, y, width, height, border_width, depth;
 	Window r;
-	if(! XGetGeometry(xdk_display_get_peer(display), xoverlay, & x, & x, & y, & width, & height, & border_width, & depth)) {
+	if(! XGetGeometry(xdk_display_get_peer(display), xoverlay, & r, & x, & y, & width, & height, & border_width, & depth)) {
 		g_error("Failed to get overlay geometry");
 	}
 	clutter_actor_set_position(overlay, x, y);
 	clutter_actor_set_size(overlay, width, height);
+	clutter_actor_set_background_color(overlay, clutter_color_get_static(CLUTTER_COLOR_ALUMINIUM_6));
 	clutter_actor_realize(overlay);
-	XReparentWindow(xdk_display_get_peer(display), clutter_x11_get_stage_window(overlay), xoverlay, 0, 0);
+	XReparentWindow(xdk_display_get_peer(display), clutter_x11_get_stage_window(CLUTTER_STAGE(overlay)), xoverlay, 0, 0);
 	clutter_actor_show(overlay);
 	
 	// register event filter for Xdk
