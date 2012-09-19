@@ -3,8 +3,19 @@
 #include <clutter/x11/clutter-x11.h>
 #include <X11/extensions/Xrender.h>
 
-// http://stackoverflow.com/questions/3645632/how-to-create-a-window-with-a-bit-depth-of-32
-// http://cgit.freedesktop.org/xorg/xserver/tree/dix/window.c#n615
+/**
+ * 
+ * Set visual different from parent window must set
+ * 1. depth
+ * 2. visual
+ * 3. colormap (create with visual in step 2)
+ * 4. border pixel
+ * 5. background pixel
+ * Or bad match error results. See
+ *   http://stackoverflow.com/questions/3645632/how-to-create-a-window-with-a-bit-depth-of-32
+ *   http://cgit.freedesktop.org/xorg/xserver/tree/dix/window.c#n615
+ * 
+ */
 int main(int argc, char * args[])
 {
 	clutter_x11_set_use_argb_visual(TRUE);
@@ -21,6 +32,7 @@ int main(int argc, char * args[])
 	XdkWindow * window = xdk_window_new();
 	xdk_window_set_size(window, 720, 480);
 	xdk_window_set_visual(window, visual);
+	xdk_window_set_background_color(window, 0x7fff0000);
 	xdk_window_realize(window);
 	
 	ClutterActor * stage = clutter_stage_new();
