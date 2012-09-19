@@ -651,6 +651,8 @@ static void damage_event_to_string(XEvent * event, gchar * buf, gssize buf_size)
 {
 	XDamageNotifyEvent * e = (XDamageNotifyEvent *) event;
 	g_snprintf(buf, buf_size,
-		"\n\tdamage=%lu\n\tlevel=%d\n\tmore=%s",
-		e->damage, e->level, boolean_to_string(e->more));
+		"\n\tdamage=%lu\n\tlevel=%d\n\tmore=%s\n\tarea=[%d,%d,%u,%u]\n\tgeometry=[%d,%d,%u,%u]",
+		e->damage, e->level, boolean_to_string(e->more),
+		e->area.x, e->area.y, e->area.width, e->area.height,
+		e->geometry.x, e->geometry.y, e->geometry.width, e->geometry.height);
 }
