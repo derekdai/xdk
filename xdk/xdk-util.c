@@ -73,8 +73,6 @@ static const char * map_state_to_string(gint map_state);
 
 static char xdk_util_buf[4096];
 
-static initialized = FALSE;
-
 static const XEventInfo event_infos[] = {
 	{ "Unknown", NULL },
 	{ "Unknown", NULL },
@@ -121,20 +119,20 @@ static ExtensionInfo extension_infos[] = {
 
 static void xdk_util_init()
 {
-	if(G_LIKELY(initialized)) {
-		return;
-	}
+	static volatile initialized = 0;
 	
-	Display * display = xdk_display_get_peer(xdk_display_get_default());
-	int i = 0;
-	for(; i < G_N_ELEMENTS(extension_infos); i ++) {
-		extension_infos[i].query_extension_func(
-			display,
-			& extension_infos[i].event_base,
-			& extension_infos[i].error_base);
+	if(g_once_init_enter(& initialized)) {
+		Display * display = xdk_display_get_peer(xdk_display_get_default());
+		int i = 0;
+		for(; i < G_N_ELEMENTS(extension_infos); i ++) {
+			extension_infos[i].query_extension_func(
+				display,
+				& extension_infos[i].event_base,
+				& extension_infos[i].error_base);
+		}
+		
+		g_once_init_leave(& initialized, TRUE);
 	}
-	
-	initialized = TRUE;
 }
 
 void xdk_util_event_dump(XEvent * event)
