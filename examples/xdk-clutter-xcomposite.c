@@ -132,7 +132,7 @@ gint main(gint argc, gchar * args[])
 
 	XdkDisplay * display = xdk_display_get_default();
 	XdkWindow * root = xdk_get_default_root_window();
-
+	
 	// check if there is a composite manager exists, if not, we are the one
 	Atom net_wm_cm = xdk_display_atom_from_name(display, "_NET_WM_CM_S0", FALSE);
 	Window cm = XGetSelectionOwner(xdk_display_get_peer(display), net_wm_cm);
@@ -150,10 +150,7 @@ gint main(gint argc, gchar * args[])
 		root,
 		XDK_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
 		XDK_EVENT_MASK_STRUCTURE_NOTIFY |
-		XDK_EVENT_MASK_VISIBILITY_CHANGE |
-		XDK_EVENT_MASK_BUTTON_PRESS |
-		XDK_EVENT_MASK_BUTTON_RELEASE |
-		XDK_EVENT_MASK_BUTTON1_MOTION);
+		XDK_EVENT_MASK_VISIBILITY_CHANGE);
 	xdk_flush();
 	
 	GError * error = NULL;
@@ -168,7 +165,7 @@ gint main(gint argc, gchar * args[])
 	xdk_display_grab_server(display);
 	GList * windows = xdk_window_query_tree(root);
 	GList * node = windows;
-	while(node) {
+	for(; node; node = g_list_next(node)) {
 		//xdk_util_window_dump((Window) node->data);
 		Window w = (Window) node->data;
 		XWindowAttributes attrs;
@@ -176,7 +173,6 @@ gint main(gint argc, gchar * args[])
 			xdk_display_get_peer(display),
 			w, & attrs);
 		if(IsUnmapped == attrs.map_state) {
-			node = g_list_next(node);
 			continue;
 		}
 		
@@ -184,8 +180,6 @@ gint main(gint argc, gchar * args[])
 		clutter_actor_set_position(actor, attrs.x, attrs.y);
 		clutter_actor_set_size(actor, attrs.width, attrs.height);
 		clutter_actor_show(actor);
-		
-		node = g_list_next(node);
 	}
 
 	g_list_free(windows);
