@@ -379,17 +379,22 @@ static void xdk_window_constructed(GObject * object)
 {
 	G_OBJECT_CLASS(xdk_window_parent_class)->constructed(object);
 	
-	XdkWindowPrivate * priv = XDK_WINDOW(object)->priv;
+	XdkWindow * self = XDK_WINDOW(object);
+	XdkWindowPrivate * priv = self->priv;
 	if(! priv->screen) {
 		priv->screen = xdk_get_default_screen();
 	}
 
 	priv->background_color = xdk_screen_get_white(priv->screen);
+	xdk_window_set_visual(self, xdk_screen_get_default_visual(priv->screen));
 }
 
 static void xdk_window_dispose(GObject * object)
 {
 	XdkWindowPrivate * priv = XDK_WINDOW(object)->priv;
+	
+	g_object_unref(priv->visual);
+	priv->visual = NULL;
 }
 
 static void xdk_window_finalize(GObject * object)
@@ -486,23 +491,39 @@ Window xdk_window_create_window(
 {
 	g_return_if_fail(self);
 	g_return_if_fail(parent);
-	
-	if(! xdk_window_is_realized(parent)) {
-		xdk_window_realize(parent);
-	}
+	g_return_if_fail(attributes);
 	
 	XdkWindowPrivate * priv = self->priv;
-	return XCreateWindow(
+	XSetWindowAttributes tmp = * attributes;
+	if(! (CWColormap & attribute_mask)) {
+		attribute_mask |= CWColormap;
+		attributes = & tmp;
+		attributes->colormap = xdk_visual_to_colormap(priv->visual);
+	}
+	
+	xdk_trap_error();
+	Window window = XCreateWindow(
 		xdk_display_get_peer(priv->display),
 		xdk_window_get_peer(parent),
 		priv->x, priv->y,
 		priv->width, priv->height,
 		priv->border_width,
-		CopyFromParent,						/* color depth */
+		xdk_visual_get_depth(priv->visual),
 		window_type,
-		CopyFromParent,						/* visual */
+		xdk_visual_get_peer(priv->visual),
 		attribute_mask,
 		attributes);
+	xdk_flush();
+		
+	GError * error = NULL;
+	if(xdk_untrap_error(& error)) {
+		if(error) {
+			g_warning("Failed to create window: %s", error->message);
+			g_error_free(error);
+		}
+	}
+	
+	return window;
 }
 
 void xdk_window_realize(XdkWindow * self)
@@ -521,21 +542,25 @@ static void xdk_window_default_realize(XdkWindow * self)
 {
 	XdkWindowPrivate * priv = self->priv;
 	XSetWindowAttributes attributes = {
-		.event_mask = priv->event_mask,
+		.border_pixel = 0,
 		.background_pixel = priv->background_color,
 		.win_gravity = priv->gravity,
 		.backing_store = WhenMapped,
+		.event_mask = priv->event_mask,
 	};
 	Window peer = xdk_window_create_window(
 		self,
 		priv->parent ? priv->parent : xdk_screen_get_root_window(priv->screen),
 		XDK_WINDOW_CLASSES_INPUT_OUTPUT,
-		XDK_ATTR_MASK_BACKGROUND_COLOR | XDK_ATTR_MASK_WIN_GRAVITY |
-			XDK_ATTR_MASK_EVENT_MASK,
+		CWBorderPixel | CWBackPixel | CWWinGravity | CWBackingStore |
+			CWEventMask,
 		& attributes);
+	if(None == peer) {
+		return;
+	}
 	xdk_window_take_peer(self, peer);
 
-	// accept WM_DELETE_WINDOW client event
+	// involve WM_DELETE_WINDOW client event
 	Atom atom = xdk_display_atom_get(
 		priv->display,
 		XDK_ATOM_WM_DELETE_WINDOW);
@@ -1224,4 +1249,33 @@ GList * xdk_window_query_tree(XdkWindow * self)
 	
 end:
 	return tree;
+}
+
+void xdk_window_set_visual(XdkWindow * self, XdkVisual * visual)
+{
+	g_return_if_fail(self);
+	g_return_if_fail(visual);
+	
+	XdkWindowPrivate * priv = self->priv;
+	if(priv->visual) {
+		g_object_unref(priv->visual);
+	}
+	
+	priv->visual = g_object_ref(visual);
+	
+	if(! xdk_window_is_realized(self)) {
+		return;
+	}
+
+	XSetWindowColormap(
+		xdk_display_get_peer(priv->display),
+		priv->peer,
+		xdk_visual_to_colormap(visual));
+}
+
+XdkVisual * xdk_window_get_visual(XdkWindow * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return self->priv->visual;
 }

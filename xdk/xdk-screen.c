@@ -16,6 +16,8 @@ struct _XdkScreenPrivate
 	
 	GHashTable * visuals;
 	
+	XdkVisual * default_visual;
+	
 	XdkVisual * argb_visual;
 };
 
@@ -99,11 +101,7 @@ static void xdk_screen_constructed(GObject * object)
 	XdkScreen * self = XDK_SCREEN(object);
 	XdkScreenPrivate * priv = self->priv;
 	
-	priv->root = g_object_new(XDK_TYPE_WINDOW, "screen", object, NULL);
-	xdk_window_set_foreign_peer(
-		priv->root,
-		RootWindowOfScreen(priv->peer));
-		
+	// enumerate all visuals
 	int n_visual_infos;
 	XVisualInfo * visual_infos = XGetVisualInfo(
 		xdk_display_get_peer(priv->display),
@@ -114,6 +112,8 @@ static void xdk_screen_constructed(GObject * object)
 			xdk_screen_get_number(self));
 		return;
 	}
+	
+	Visual * default_visual = DefaultVisualOfScreen(priv->peer);
 	
 	int screen_number = xdk_screen_get_number(self);
 	for(-- n_visual_infos; n_visual_infos >= 0; n_visual_infos --) {
@@ -129,15 +129,27 @@ static void xdk_screen_constructed(GObject * object)
 			visual_infos[n_visual_infos].visual,
 			visual);
 			
-		if(32 == visual_infos[n_visual_infos].depth &&
+		if(! priv->argb_visual &&
+			TrueColor == visual_infos[n_visual_infos].class &&
+			32 == visual_infos[n_visual_infos].depth &&
 			0xff0000 == visual_infos[n_visual_infos].red_mask &&
 				0x00ff00 == visual_infos[n_visual_infos].green_mask &&
 				0x0000ff == visual_infos[n_visual_infos].blue_mask) {
 			priv->argb_visual = visual;
 		}
+		
+		if(default_visual == visual_infos[n_visual_infos].visual) {
+			priv->default_visual = visual;
+		}
 	}
 	
 	XFree(visual_infos);
+	
+	// attach with root window
+	priv->root = g_object_new(XDK_TYPE_WINDOW, "screen", object, NULL);
+	xdk_window_set_foreign_peer(
+		priv->root,
+		RootWindowOfScreen(priv->peer));
 }
 
 static void xdk_screen_dispose(GObject * object)
@@ -212,7 +224,7 @@ gint xdk_screen_get_default_depth(XdkScreen * self)
 	g_return_val_if_fail(self, 0);
 	g_return_val_if_fail(self->priv->peer, 0);
 	
-	return XDefaultDepthOfScreen(self->priv->peer);
+	return xdk_visual_get_depth(self->priv->default_visual);
 }
 
 XdkDisplay * xdk_screen_get_display(XdkScreen * self)
@@ -270,9 +282,7 @@ XdkVisual * xdk_screen_get_default_visual(XdkScreen * self)
 {
 	g_return_val_if_fail(self, NULL);
 	
-	XdkScreenPrivate * priv = self->priv;
-	
-	return g_hash_table_lookup(priv->visuals, DefaultVisualOfScreen(priv->peer));
+	return self->priv->default_visual;
 }
 
 XdkVisual * xdk_screen_get_rgba_visual(XdkScreen * self)
@@ -300,4 +310,11 @@ XdkVisual * xdk_screen_lookup_visual_by_id(XdkScreen * self, VisualID id)
 	}
 	
 	return xdk_screen_lookup_visual(self, visual);
+}
+
+GList * xdk_screen_list_visuals(XdkScreen * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return g_hash_table_get_values(self->priv->visuals);
 }

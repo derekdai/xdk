@@ -72,6 +72,8 @@ gulong xdk_visual_get_blue_mask(XdkVisual * self);
 
 gint xdk_visual_get_colormap_size(XdkVisual * self);
 
+Colormap xdk_visual_to_colormap(XdkVisual * self);
+
 G_END_DECLS
 
 #endif /* __XDK_VISUAL_H_ */

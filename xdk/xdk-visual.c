@@ -1,5 +1,6 @@
-#include "xdk-visual.h"
+#include "xdk-display.h"
 #include "xdk-screen.h"
+#include "xdk-visual.h"
 
 #define XDK_VISUAL_GET_PRIVATE(o)	(G_TYPE_INSTANCE_GET_PRIVATE(o, XDK_TYPE_VISUAL, XdkVisualPrivate))
 
@@ -18,6 +19,8 @@ struct _XdkVisualPrivate
 	gint colormap_size;
 	
 	XdkScreen * screen;
+	
+	Colormap colormap;
 };
 
 enum
@@ -32,12 +35,15 @@ static void xdk_visual_set_property(
 	const GValue * value,
 	GParamSpec * pspec);
 	
+static void xdk_visual_finalize(GObject * object);
+	
 G_DEFINE_TYPE(XdkVisual, xdk_visual, G_TYPE_OBJECT);
 
 void xdk_visual_class_init(XdkVisualClass * clazz)
 {
 	GObjectClass * gobject_class = G_OBJECT_CLASS(clazz);
 	gobject_class->set_property = xdk_visual_set_property;
+	gobject_class->finalize = xdk_visual_finalize;
 
 	g_object_class_install_property(
 			gobject_class,
@@ -60,6 +66,7 @@ void xdk_visual_class_init(XdkVisualClass * clazz)
 void xdk_visual_init(XdkVisual * self)
 {
 	self->priv = XDK_VISUAL_GET_PRIVATE(self);
+	self->priv->colormap = None;
 }
 
 static void xdk_visual_set_property(
@@ -100,6 +107,16 @@ XdkVisual * xdk_visual_new(XVisualInfo * info, XdkScreen * screen)
 		"info", info,
 		"screen", screen,
 		NULL);
+}
+
+static void xdk_visual_finalize(GObject * object)
+{
+	XdkVisualPrivate * priv = XDK_VISUAL(object)->priv;
+	if(None != priv->colormap) {
+		XFreeColormap(
+			xdk_display_get_peer(xdk_screen_get_display(priv->screen)),
+			priv->colormap);
+	}
 }
 
 Visual * xdk_visual_get_peer(XdkVisual * self)
@@ -156,4 +173,26 @@ gint xdk_visual_get_colormap_size(XdkVisual * self)
 	g_return_val_if_fail(self, 0);
 	
 	return self->priv->colormap_size;
+}
+
+Colormap xdk_visual_to_colormap(XdkVisual * self)
+{
+	g_return_val_if_fail(self, None);
+	
+	XdkVisualPrivate * priv = self->priv;
+	if(priv->colormap) {
+		goto end;
+	}
+	
+	priv->colormap = XCreateColormap(
+		xdk_display_get_peer(xdk_screen_get_display(priv->screen)),
+		xdk_window_get_peer(xdk_screen_get_root_window(priv->screen)),
+		priv->peer,
+		AllocNone);
+	XInstallColormap(
+		xdk_display_get_peer(xdk_screen_get_display(priv->screen)),
+		priv->colormap);
+	
+end:
+	return priv->colormap;
 }

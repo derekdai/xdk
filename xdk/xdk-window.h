@@ -197,6 +197,10 @@ void xdk_window_select_input(XdkWindow * self, XdkEventMask event_mask);
 
 GList * xdk_window_query_tree(XdkWindow * self);
 
+void xdk_window_set_visual(XdkWindow * self, XdkVisual * visual);
+
+XdkVisual * xdk_window_get_visual(XdkWindow * self);
+
 G_END_DECLS
 
 #endif /* __XDK_WINDOW_H_ */

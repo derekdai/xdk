@@ -60,6 +60,8 @@ gboolean xdk_screen_is_save_unders(XdkScreen * self);
 
 XdkVisual * xdk_screen_get_rgba_visual(XdkScreen * self);
 
+GList * xdk_screen_list_visuals(XdkScreen * self);
+
 G_END_DECLS
 
 #endif /* __XDK_SCREEN_H_ */
