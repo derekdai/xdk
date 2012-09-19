@@ -125,6 +125,10 @@ int xdk_display_grab_server(XdkDisplay * self);
 
 int xdk_display_ungrab_server(XdkDisplay * self);
 
+gboolean xdk_display_has_composite_extension(XdkDisplay * self);
+
+gboolean xdk_display_has_damage_extension(XdkDisplay * self);
+
 XdkScreen * xdk_get_default_screen();
 
 XdkWindow * xdk_get_default_root_window();

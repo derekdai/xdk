@@ -779,3 +779,19 @@ int xdk_display_ungrab_server(XdkDisplay * self)
 	
 	return XUngrabServer(self->priv->peer);
 }
+
+gboolean xdk_display_has_composite_extension(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, FALSE);
+	
+	int event_base, error_base;
+	return XCompositeQueryExtension(self->priv->peer, & event_base, & error_base);
+}
+
+gboolean xdk_display_has_damage_extension(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, FALSE);
+	
+	int event_base, error_base;
+	return XDamageQueryExtension(self->priv->peer, & event_base, & error_base);
+}
