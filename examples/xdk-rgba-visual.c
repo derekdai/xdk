@@ -85,7 +85,7 @@ int main(int argc, char * args[])
 	}
 	
 	XSetWindowAttributes attrs = {
-		.background_pixel = 0,
+		.background_pixel = 0x7fff0000,
 		.border_pixel = 0,
 		.colormap = colormap,
 	};
@@ -102,15 +102,10 @@ int main(int argc, char * args[])
 		g_error("Failed to create window");
 	}
 	XMapWindow(display, win);
-	XSync(display, TRUE);
+	XFlush(display);
 	
-	g_usleep(3 * 1000 * 1000);
-	
-	//XDestroyWindow(display, win);
-	//XUninstallColormap(display, colormap);
-	//XFreeColormap(display, colormap);
-	//XCloseDisplay(display);
-	*/
+	g_usleep(3 * G_USEC_PER_SEC);
+	/*
 
 	return 0;
 }
