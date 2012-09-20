@@ -5,7 +5,7 @@ project( test-xlib )
 find_package( PkgConfig )
 
 pkg_check_modules( X11 REQUIRED x11 )
-pkg_check_modules( GLIB REQUIRED gobject-2.0 )
+pkg_check_modules( GLIB REQUIRED gio-2.0 )
 pkg_check_modules( XCOMPOSITE REQUIRED xcomposite )
 pkg_check_modules( XDAMAGE REQUIRED xdamage )
 

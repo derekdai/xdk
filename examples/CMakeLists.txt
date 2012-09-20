@@ -57,3 +57,14 @@ target_link_libraries( xdk-clutter-xcomposite xdk ${CLUTTER_LIBRARIES} )
 
 add_executable( xdk-rgba-visual xdk-rgba-visual )
 target_link_libraries( xdk-rgba-visual xdk ${CLUTTER_LIBRARIES} )
+
+add_executable( xdk-wm xdk-wm )
+target_link_libraries( xdk-wm xdk ${GLIB_LIBRARIES} )
+
+install(
+	TARGETS
+		xdk-wm
+		xdk-clutter-xcomposite
+	RUNTIME DESTINATION
+		bin
+)

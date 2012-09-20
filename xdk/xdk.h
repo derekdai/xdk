@@ -14,6 +14,7 @@
 #include "xdk-window.h"
 #include "xdk-gc.h"
 #include "xdk-visual.h"
+#include "xdk-window-manager.h"
 
 G_BEGIN_DECLS
 

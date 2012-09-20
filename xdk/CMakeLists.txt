@@ -10,6 +10,7 @@ add_library(
 	xdk-visual
 	xdk-types
 	xdk-util
+	xdk-window-manager
 )
 
 target_link_libraries(
@@ -19,3 +20,5 @@ target_link_libraries(
 	${X11_LIBRARIES}
 	${GLIB_LIBRARIES}
 )
+
+install( TARGETS xdk LIBRARY DESTINATION lib )
