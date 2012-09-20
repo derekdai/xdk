@@ -795,3 +795,18 @@ gboolean xdk_display_has_damage_extension(XdkDisplay * self)
 	int event_base, error_base;
 	return XDamageQueryExtension(self->priv->peer, & event_base, & error_base);
 }
+
+Cursor xdk_display_create_font_cursor(XdkDisplay * self, guint shape)
+{
+	g_return_val_if_fail(self, None);
+	
+	return XCreateFontCursor(self->priv->peer, shape);
+}
+
+void xdk_display_free_cursor(XdkDisplay * self, Cursor cursor)
+{
+	g_return_if_fail(self);
+	g_return_if_fail(None != cursor);
+	
+	XFreeCursor(self->priv->peer, cursor);
+}

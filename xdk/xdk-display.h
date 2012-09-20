@@ -3,6 +3,7 @@
 
 #include <glib-object.h>
 #include <X11/Xlib.h>
+#include <X11/cursorfont.h>
 #include "xdk-screen.h"
 #include "xdk-window.h"
 
@@ -128,6 +129,10 @@ int xdk_display_ungrab_server(XdkDisplay * self);
 gboolean xdk_display_has_composite_extension(XdkDisplay * self);
 
 gboolean xdk_display_has_damage_extension(XdkDisplay * self);
+
+Cursor xdk_display_create_font_cursor(XdkDisplay * self, guint shape);
+
+void xdk_display_free_cursor(XdkDisplay * self, Cursor cursor);
 
 XdkScreen * xdk_get_default_screen();
 

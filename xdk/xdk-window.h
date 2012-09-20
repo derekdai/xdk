@@ -201,6 +201,13 @@ void xdk_window_set_visual(XdkWindow * self, XdkVisual * visual);
 
 XdkVisual * xdk_window_get_visual(XdkWindow * self);
 
+void xdk_window_set_cursor(XdkWindow * self, Cursor cursor);
+
+void xdk_window_configure(
+	XdkWindow * self,
+	guint value_mask,
+	XWindowChanges * values);
+
 G_END_DECLS
 
 #endif /* __XDK_WINDOW_H_ */

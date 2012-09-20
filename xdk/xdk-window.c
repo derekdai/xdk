@@ -83,12 +83,6 @@ static void xdk_window_handle_unmap_notify(XdkWindow * self, XEvent * event);
 
 static void xdk_window_handle_gravity_notify(XdkWindow * self, XEvent * event);
 
-static gboolean xdk_window_event_filter(
-	GSignalInvocationHint * ihint,
-	GValue * return_accu,
-	const GValue * handler_return,
-	gpointer user_data);
-
 G_DEFINE_TYPE(XdkWindow, xdk_window, G_TYPE_OBJECT);
 
 static guint signals[SIGNAL_MAX] = { 0, };
@@ -1194,15 +1188,6 @@ GList * xdk_window_list_children(XdkWindow * self)
 	return g_list_copy(self->priv->children);
 }
 
-static gboolean xdk_window_event_filter(
-	GSignalInvocationHint * ihint,
-	GValue * return_accu,
-	const GValue * handler_return,
-	gpointer user_data)
-{
-	return g_value_get_boolean(handler_return);
-}
-
 void xdk_window_select_input(XdkWindow * self, XdkEventMask event_mask)
 {
 	g_return_if_fail(self);
@@ -1278,4 +1263,48 @@ XdkVisual * xdk_window_get_visual(XdkWindow * self)
 	g_return_val_if_fail(self, NULL);
 	
 	return self->priv->visual;
+}
+
+void xdk_window_set_cursor(XdkWindow * self, Cursor cursor)
+{
+	g_return_if_fail(self);
+	
+	XdkWindowPrivate * priv = self->priv;
+	XDefineCursor(xdk_display_get_peer(priv->display), priv->peer, cursor);
+	xdk_display_flush(priv->display);
+}
+
+void xdk_window_configure(
+	XdkWindow * self,
+	guint value_mask,
+	XWindowChanges * values)
+{
+	g_return_if_fail(self);
+	g_return_if_fail(values);
+	
+	XdkWindowPrivate * priv = self->priv;
+	if(CWX & value_mask) {
+		priv->x = values->x;
+	}
+	else if(CWY & value_mask) {
+		priv->y = values->y;
+	}
+	else if(CWWidth & value_mask) {
+		priv->width = values->width;
+	}
+	else if(CWHeight & value_mask) {
+		priv->height = values->height;
+	}
+	else if(CWBorderWidth & value_mask) {
+		priv->border_width = values->border_width;
+	}
+	
+	if(! xdk_window_is_realized(self)) {
+		return;
+	}
+	
+	XConfigureWindow(
+		xdk_display_get_peer(priv->display),
+		priv->peer,
+		value_mask, values);
 }
