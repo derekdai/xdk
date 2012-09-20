@@ -133,6 +133,9 @@ gint main(gint argc, gchar * args[])
 	XdkDisplay * display = xdk_display_get_default();
 	XdkWindow * root = xdk_get_default_root_window();
 	
+	Cursor cursor = xdk_display_create_font_cursor(display, XC_left_ptr);
+	xdk_window_set_cursor(root, cursor);
+	
 	// check if there is a composite manager exists, if not, we are the one
 	Atom net_wm_cm = xdk_display_atom_from_name(display, "_NET_WM_CM_S0", FALSE);
 	Window cm = XGetSelectionOwner(xdk_display_get_peer(display), net_wm_cm);
