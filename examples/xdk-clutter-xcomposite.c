@@ -58,29 +58,28 @@ void remove_actor(Window window)
 	g_hash_table_remove(win_actor_map, GUINT_TO_POINTER(window));
 }
 
-void on_configure_request(XdkWindow * root, XEvent * event, XdkDisplay * display)
+void on_configure_request(XdkWindow * root, XConfigureRequestEvent * event, XdkDisplay * display)
 {
-	XConfigureRequestEvent * e = (XConfigureRequestEvent *) event;
 	XWindowChanges change = {
-		.x = e->x,
-		.y = e->y,
-		.width = e->width,
-		.height = e->height,
-		.border_width = e->border_width,
-		.sibling = e->above,
-		.stack_mode = e->detail
+		.x = event->x,
+		.y = event->y,
+		.width = event->width,
+		.height = event->height,
+		.border_width = event->border_width,
+		.sibling = event->above,
+		.stack_mode = event->detail
 	};
 	XConfigureWindow(
 		xdk_display_get_peer(display),
-		e->window,
-		e->value_mask,
+		event->window,
+		event->value_mask,
 		& change);
 	
-	ClutterActor * actor = lookup_actor(e->window, TRUE);
-	clutter_actor_set_position(actor, e->x, e->y);
-	clutter_actor_set_size(actor, e->width, e->height);
-	if(None != e->above) {
-		ClutterActor * sibling = lookup_actor(e->above, TRUE);
+	ClutterActor * actor = lookup_actor(event->window, TRUE);
+	clutter_actor_set_position(actor, event->x, event->y);
+	clutter_actor_set_size(actor, event->width, event->height);
+	if(None != event->above) {
+		ClutterActor * sibling = lookup_actor(event->above, TRUE);
 		clutter_actor_set_child_above_sibling(
 			clutter_actor_get_parent(actor),
 			actor,
@@ -88,39 +87,34 @@ void on_configure_request(XdkWindow * root, XEvent * event, XdkDisplay * display
 	}
 }
 
-void on_map_request(XdkWindow * root, XEvent * event, XdkDisplay * display)
+void on_map_request(XdkWindow * root, XMapRequestEvent * event, XdkDisplay * display)
 {
-	XMapRequestEvent * e = (XMapRequestEvent *) event;
-	
 	xdk_trap_error();
-	XMapWindow(xdk_display_get_peer(display), e->window);
-	xdk_untrap_error(NULL);
-	
-	ClutterActor * actor = lookup_actor(e->window, TRUE);
-	clutter_actor_show(actor);
-}
-
-void on_map_notify(XdkWindow * root, XEvent * event, XdkDisplay * display)
-{
-	XMapEvent * e = (XMapEvent *) event;
-	
-	ClutterActor * actor = lookup_actor(e->window, TRUE);
-	clutter_actor_show(actor);
-}
-
-void on_unmap_notify(XdkWindow * root, XEvent * event, XdkDisplay * display)
-{
-	XUnmapEvent * e = (XUnmapEvent *) event;
-	ClutterActor * actor = lookup_actor(e->window, FALSE);
-	if(actor) {
-		clutter_actor_hide(actor);
+	XMapWindow(xdk_display_get_peer(display), event->window);
+	if(xdk_untrap_error(NULL)) {
+		return;
 	}
-	XUnmapWindow(xdk_display_get_peer(display), e->window);
+	
+	ClutterActor * actor = lookup_actor(event->window, TRUE);
+	clutter_actor_show(actor);
 }
 
-void on_destroy_notify(XdkWindow * root, XEvent * event, XdkDisplay * display)
+void on_map_notify(XdkWindow * root, XMapEvent * event, XdkDisplay * display)
 {
-	remove_actor(((XDestroyWindowEvent *) event)->window);
+	ClutterActor * actor = lookup_actor(event->window, TRUE);
+	xdk_trap_error();
+	XMapWindow(xdk_display_get_peer(display), event->window);
+	clutter_actor_show(actor);
+}
+
+void on_unmap_notify(XdkWindow * root, XUnmapEvent * event, XdkDisplay * display)
+{
+	remove_actor(event->window);
+}
+
+void on_destroy_notify(XdkWindow * root, XDestroyWindowEvent * event, XdkDisplay * display)
+{
+	remove_actor(event->window);
 }
 
 gint xcomp_event_base = 0, xcomp_error_base = 0;
