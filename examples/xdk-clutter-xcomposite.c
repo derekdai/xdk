@@ -60,6 +60,10 @@ void remove_actor(Window window)
 
 void on_configure_request(XdkWindow * root, XConfigureRequestEvent * event, XdkDisplay * display)
 {
+	if(! event->value_mask) {
+		return;
+	}
+	
 	XWindowChanges change = {
 		.x = event->x,
 		.y = event->y,
@@ -79,6 +83,18 @@ void on_configure_request(XdkWindow * root, XConfigureRequestEvent * event, XdkD
 	clutter_actor_set_position(actor, event->x, event->y);
 	clutter_actor_set_size(actor, event->width, event->height);
 	if(None != event->above) {
+		ClutterActor * sibling = lookup_actor(event->above, TRUE);
+		clutter_actor_set_child_above_sibling(
+			clutter_actor_get_parent(actor),
+			actor,
+			sibling);
+	}
+}
+
+void on_configure_notify(XdkWindow * root, XConfigureEvent * event, XdkDisplay * display)
+{
+	if(None != event->above) {
+		ClutterActor * actor = lookup_actor(event->window, TRUE);
 		ClutterActor * sibling = lookup_actor(event->above, TRUE);
 		clutter_actor_set_child_above_sibling(
 			clutter_actor_get_parent(actor),
@@ -199,6 +215,7 @@ gint main(gint argc, gchar * args[])
 	xdk_display_ungrab_server(display);
 	
 	g_signal_connect(root, "configure-request", G_CALLBACK(on_configure_request), display);
+	g_signal_connect(root, "configure-notify", G_CALLBACK(on_configure_notify), display);
 	g_signal_connect(root, "map-request", G_CALLBACK(on_map_request), display);
 	g_signal_connect(root, "map-notify", G_CALLBACK(on_map_notify), display);
 	g_signal_connect(root, "unmap-notify", G_CALLBACK(on_unmap_notify), display);
