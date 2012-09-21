@@ -16,9 +16,6 @@ ClutterX11FilterReturn on_event(
 {
 	ClutterX11FilterReturn result = CLUTTER_X11_FILTER_CONTINUE;
 	switch(xev->type) {
-	case ConfigureNotify:
-		
-		break;
 	case DestroyNotify:
 		xev->xany.window = xdk_window_get_peer(xdk_get_default_root_window());
 		result = CLUTTER_X11_FILTER_REMOVE;
@@ -35,10 +32,17 @@ ClutterActor * lookup_actor(Window window, gboolean create)
 	ClutterActor * actor = g_hash_table_lookup(win_actor_map, GUINT_TO_POINTER(window));
 	
 	if(! actor && create) {
-		actor = clutter_rectangle_new_with_color(clutter_color_get_static(CLUTTER_COLOR_GREEN));
-
+		clutter_x11_trap_x_errors();
+		Display * display = clutter_x11_get_default_display();
+		XWindowAttributes attrs;
+		XGetWindowAttributes(display, window, & attrs);
+		if(clutter_x11_untrap_x_errors()) {
+			return;
+		}
+		
 		actor = clutter_x11_texture_pixmap_new_with_window(window);
 		clutter_x11_texture_pixmap_set_automatic(CLUTTER_X11_TEXTURE_PIXMAP(actor), TRUE);
+		clutter_actor_set_position(actor, attrs.x, attrs.y);
 		clutter_actor_hide(actor);
 		clutter_actor_add_child(overlay, actor);
 
@@ -87,15 +91,21 @@ void on_configure_request(XdkWindow * root, XEvent * event, XdkDisplay * display
 void on_map_request(XdkWindow * root, XEvent * event, XdkDisplay * display)
 {
 	XMapRequestEvent * e = (XMapRequestEvent *) event;
+	
 	xdk_trap_error();
 	XMapWindow(xdk_display_get_peer(display), e->window);
+	xdk_untrap_error(NULL);
+	
 	ClutterActor * actor = lookup_actor(e->window, TRUE);
 	clutter_actor_show(actor);
 }
 
-void on_resize_request(XdkWindow * root, XEvent * event, XdkDisplay * display)
+void on_map_notify(XdkWindow * root, XEvent * event, XdkDisplay * display)
 {
-	g_message("on_resize_request");
+	XMapEvent * e = (XMapEvent *) event;
+	
+	ClutterActor * actor = lookup_actor(e->window, TRUE);
+	clutter_actor_show(actor);
 }
 
 void on_unmap_notify(XdkWindow * root, XEvent * event, XdkDisplay * display)
@@ -153,7 +163,7 @@ gint main(gint argc, gchar * args[])
 		root,
 		XDK_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
 		XDK_EVENT_MASK_STRUCTURE_NOTIFY |
-		XDK_EVENT_MASK_VISIBILITY_CHANGE);
+		XDK_EVENT_MASK_SUBSTRUCTURE_NOTIFY);
 	xdk_flush();
 	
 	GError * error = NULL;
@@ -190,6 +200,7 @@ gint main(gint argc, gchar * args[])
 	
 	g_signal_connect(root, "configure-request", G_CALLBACK(on_configure_request), display);
 	g_signal_connect(root, "map-request", G_CALLBACK(on_map_request), display);
+	g_signal_connect(root, "map-notify", G_CALLBACK(on_map_notify), display);
 	g_signal_connect(root, "unmap-notify", G_CALLBACK(on_unmap_notify), display);
 	g_signal_connect(root, "destroy-notify", G_CALLBACK(on_destroy_notify), display);
 
