@@ -24,6 +24,16 @@ enum
 	PROP_LAST
 };
 
+enum
+{
+	SIGNAL_WINDOW_CREATE,
+	SIGNAL_WINDOW_SHOW,
+	SIGNAL_WINDOW_HIDE,
+	SIGNAL_WINDOW_RESTACK,
+	SIGNAL_WINDOW_DESTROY,
+	SIGNAL_LAST
+};
+
 static void xdk_window_manager_set_property(
 	GObject * object,
 	guint property_id,
@@ -54,6 +64,11 @@ static void xkd_window_manager_set_screen(
 static void xdk_window_manager_set_cursor_internal(
 	XdkWindowManager * self,
 	Cursor cursor);
+
+static void xdk_window_manager_on_create(
+	XdkWindowManager * self,
+	XCreateWindowEvent * event,
+	XdkWindow * root);
 	
 static void xdk_window_manager_on_configure_request(
 	XdkWindowManager * self,
@@ -83,11 +98,13 @@ static XdkWindow * xdk_window_manager_lookup_window(
 static void xdk_window_manager_connect_signals(XdkWindowManager * self);
 
 static void xdk_window_manager_disconnect_signals(XdkWindowManager * self);
-	
+
 G_DEFINE_TYPE_WITH_CODE(XdkWindowManager, xdk_window_manager, G_TYPE_OBJECT,
 	G_IMPLEMENT_INTERFACE(G_TYPE_INITABLE, xdk_window_manager_initiable_iface_init));
 
 static GParamSpec * properties[PROP_LAST];
+
+static guint signals[SIGNAL_LAST];
 
 GQuark xdk_window_manager_error()
 {
@@ -138,6 +155,43 @@ static void xdk_window_manager_class_init(XdkWindowManagerClass * clazz)
 		gobject_class,
 		PROP_HAS_DEFAULT_CURSOR,
 		properties[PROP_HAS_DEFAULT_CURSOR]);
+		
+	GType type = XDK_TYPE_WINDOW_MANAGER;
+	signals[SIGNAL_WINDOW_CREATE] = g_signal_new(
+		"window-create",
+		type,
+		G_SIGNAL_RUN_FIRST,
+		0,
+		NULL, NULL,
+		g_cclosure_marshal_generic,
+		G_TYPE_NONE, 1, XDK_TYPE_WINDOW);
+
+	signals[SIGNAL_WINDOW_SHOW] = g_signal_new(
+		"window-show",
+		type,
+		G_SIGNAL_RUN_FIRST,
+		0,
+		NULL, NULL,
+		g_cclosure_marshal_generic,
+		G_TYPE_NONE, 1, XDK_TYPE_WINDOW);
+	
+	signals[SIGNAL_WINDOW_HIDE] = g_signal_new(
+		"window-hide",
+		type,
+		G_SIGNAL_RUN_FIRST,
+		0,
+		NULL, NULL,
+		g_cclosure_marshal_generic,
+		G_TYPE_NONE, 1, XDK_TYPE_WINDOW);
+			
+	signals[SIGNAL_WINDOW_DESTROY] = g_signal_new(
+		"window-destroy",
+		type,
+		G_SIGNAL_RUN_LAST,
+		0,
+		NULL, NULL,
+		g_cclosure_marshal_generic,
+		G_TYPE_NONE, 1, XDK_TYPE_WINDOW);
 			
 	g_type_class_add_private(clazz, sizeof(XdkWindowManagerPrivate));
 }
@@ -174,15 +228,30 @@ end:
 	return window;
 }
 
-static void xdk_window_manager_on_configure_request(
+static void xdk_window_manager_on_create(
 	XdkWindowManager * self,
-	XConfigureRequestEvent * event,
+	XCreateWindowEvent * event,
 	XdkWindow * root)
 {
 	XdkWindow * window = xdk_window_manager_lookup_window(
 		self,
 		event->window,
 		TRUE);
+		
+	g_signal_emit(self, signals[SIGNAL_WINDOW_CREATE], 0, window);
+}
+
+static void xdk_window_manager_on_configure_request(
+	XdkWindowManager * self,
+	XConfigureRequestEvent * event,
+	XdkWindow * root)
+{
+	g_message("xdk_window_manager_on_configure_request");
+	
+	XdkWindow * window = xdk_window_manager_lookup_window(
+		self,
+		event->window,
+		FALSE);
 	XWindowChanges change = {
 		.x = event->x,
 		.y = event->y,
@@ -204,8 +273,25 @@ static void xdk_window_manager_on_map_request(
 	XdkWindow * window = xdk_window_manager_lookup_window(
 		self,
 		event->window,
-		TRUE);
+		FALSE);
+
+	g_message("xdk_window_manager_on_map_request");
+
 	xdk_window_map(window);
+}
+
+static void xdk_window_manager_on_map_notify(
+	XdkWindowManager * self,
+	XMapEvent * event,
+	XdkWindow * root)
+{
+	XdkWindowManagerPrivate * priv = self->priv;
+	XdkWindow * window = xdk_window_manager_lookup_window(
+		self,
+		event->window,
+		FALSE);
+
+	g_signal_emit(self, signals[SIGNAL_WINDOW_SHOW], 0, window);
 }
 
 static void xdk_window_manager_on_unmap_notify(
@@ -213,6 +299,15 @@ static void xdk_window_manager_on_unmap_notify(
 	XUnmapEvent * event,
 	XdkWindow * root)
 {
+	XdkWindowManagerPrivate * priv = self->priv;
+	XdkWindow * window = xdk_window_manager_lookup_window(
+		self,
+		event->window,
+		FALSE);
+
+	g_message("xdk_window_manager_on_unmap_notify");
+
+	g_signal_emit(self, signals[SIGNAL_WINDOW_HIDE], 0, window);
 }
 
 static void xdk_window_manager_on_destroy_notify(
@@ -220,17 +315,16 @@ static void xdk_window_manager_on_destroy_notify(
 	XDestroyWindowEvent * event,
 	XdkWindow * root)
 {
+	g_message("xdk_window_manager_on_destroy_notify");
+	
 	XdkWindow * window = xdk_window_manager_lookup_window(
 		self,
 		event->window,
 		FALSE);
-	if(window) {
-		xdk_window_destroy(window);
-		g_object_unref(window);
-	}
+	g_signal_emit(self, signals[SIGNAL_WINDOW_HIDE], 0, window);
 }
 
-static gboolean xdk_window_manager_on_event(
+static gboolean xdk_window_manager_filter_event(
 	XdkDisplay * display,
 	XDestroyWindowEvent * event,
 	XdkWindowManager * self)
@@ -252,6 +346,11 @@ static void xdk_window_manager_connect_signals(XdkWindowManager * self)
 	XdkWindowManagerPrivate * priv = self->priv;
 	g_signal_connect_swapped(
 		priv->root,
+		"create-notify",
+		G_CALLBACK(xdk_window_manager_on_create), self);
+		
+	g_signal_connect_swapped(
+		priv->root,
 		"configure-request",
 		G_CALLBACK(xdk_window_manager_on_configure_request), self);
 		
@@ -259,6 +358,11 @@ static void xdk_window_manager_connect_signals(XdkWindowManager * self)
 		priv->root,
 		"map-request",
 		G_CALLBACK(xdk_window_manager_on_map_request), self);
+		
+	g_signal_connect_swapped(
+		priv->root,
+		"map-notify",
+		G_CALLBACK(xdk_window_manager_on_map_notify), self);
 		
 	g_signal_connect_swapped(
 		priv->root,
@@ -272,7 +376,7 @@ static void xdk_window_manager_connect_signals(XdkWindowManager * self)
 		
 	xdk_display_add_event_filter(
 		priv->display,
-		(XdkEventFilter) xdk_window_manager_on_event,
+		(XdkEventFilter) xdk_window_manager_filter_event,
 		self);
 }
 
@@ -281,7 +385,7 @@ static void xdk_window_manager_disconnect_signals(XdkWindowManager * self)
 	XdkWindowManagerPrivate * priv = self->priv;
 	xdk_display_remove_event_filter(
 		priv->display,
-		(XdkEventFilter) xdk_window_manager_on_event,
+		(XdkEventFilter) xdk_window_manager_filter_event,
 		self);
 
 	g_signal_handlers_disconnect_by_data(priv->root, self);
@@ -300,7 +404,8 @@ static gboolean xdk_window_manager_initiable_init(
 	xdk_window_select_input(
 		priv->root,
 		XDK_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
-		XDK_EVENT_MASK_SUBSTRUCTURE_NOTIFY);
+		XDK_EVENT_MASK_SUBSTRUCTURE_NOTIFY |
+		XDK_EVENT_MASK_STRUCTURE_NOTIFY);
 	xdk_display_flush(priv->display);
 	
 	if(xdk_untrap_error(NULL)) {

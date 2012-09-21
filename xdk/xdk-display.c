@@ -395,8 +395,8 @@ gchar * xdk_atom_to_name(Atom atom)
 }
 
 static xdk_display_window_destroyed(
-	XdkWindow * window,
-	XdkDisplay * self)
+	XdkDisplay * self,
+	XdkWindow * window)
 {
 	xdk_display_remove_window(self, window);
 }
@@ -407,9 +407,11 @@ void xdk_display_add_window(XdkDisplay * self, XdkWindow * window)
 	Window xwin = xdk_window_get_peer(window);
 	g_return_if_fail(None != xwin);
 	
-	g_signal_connect(
+	g_signal_connect_data(
 		window, "destroy",
-		G_CALLBACK(xdk_display_window_destroyed), self);
+		G_CALLBACK(xdk_display_window_destroyed), self,
+		NULL,
+		G_CONNECT_AFTER | G_CONNECT_SWAPPED);
 	
 	g_hash_table_insert(
 		self->priv->windows,
