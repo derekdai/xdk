@@ -101,9 +101,15 @@ void on_map_request(XdkWindow * root, XMapRequestEvent * event, XdkDisplay * dis
 
 void on_map_notify(XdkWindow * root, XMapEvent * event, XdkDisplay * display)
 {
-	ClutterActor * actor = lookup_actor(event->window, TRUE);
+	XWindowAttributes attrs;
 	xdk_trap_error();
-	XMapWindow(xdk_display_get_peer(display), event->window);
+	XGetWindowAttributes(xdk_display_get_peer(display), event->window, & attrs);
+	if(xdk_untrap_error(NULL)) {
+		return;
+	}
+
+	ClutterActor * actor = lookup_actor(event->window, TRUE);
+	clutter_actor_set_position(actor, attrs.x, attrs.y);
 	clutter_actor_show(actor);
 }
 
