@@ -118,6 +118,16 @@ void xdk_window_set_height(XdkWindow * self, gint height);
 
 void xdk_window_get_size(XdkWindow * self, gint * width, gint * height);
 
+void xdk_window_get_geometry(
+	XdkWindow * self,
+	gint * x, gint * y,
+	gint * width, gint * height);
+
+void xdk_window_set_geometry(
+	XdkWindow * self,
+	gint x, gint y,
+	gint width, gint height);
+
 /**
  * 
  * @width: -1 to ocupy width of screen
@@ -148,7 +158,7 @@ void xdk_window_set_borser_width(XdkWindow * self, guint width);
 
 guint xdk_window_get_borser_width(XdkWindow * self);
 
-Atom * xdk_window_list_properties(XdkWindow * self, int * n_props);
+Atom * xdk_window_list_properties(XdkWindow * self, gint * n_props);
 
 Window xdk_window_create_window(
 	XdkWindow * self,
@@ -185,16 +195,20 @@ gboolean xdk_window_contains_child(XdkWindow * self, XdkWindow * child);
 
 GList * xdk_window_list_children(XdkWindow * self);
 
-gboolean xdk_window_has_override_redirect(XdkWindow * self);
-
 void xdk_window_show(XdkWindow * self);
 
 void xdk_window_all(XdkWindow * self);
 
 void xdk_window_hide(XdkWindow * self);
 
+/**
+ * @see: 
+ */
 void xdk_window_select_input(XdkWindow * self, XdkEventMask event_mask);
 
+/**
+ * @return: a list of XdkWindow
+ */
 GList * xdk_window_query_tree(XdkWindow * self);
 
 void xdk_window_set_visual(XdkWindow * self, XdkVisual * visual);
@@ -207,6 +221,22 @@ void xdk_window_configure(
 	XdkWindow * self,
 	guint value_mask,
 	XWindowChanges * values);
+
+gboolean xdk_window_get_override_redirect(XdkWindow * self);
+
+void xdk_window_maximize(XdkWindow * self);
+
+void xdk_window_unmaximize(XdkWindow * self);
+
+gboolean xdk_window_is_maximized(XdkWindow * self);
+
+void xdk_window_set_keep_above(XdkWindow * self, gboolean keep_above);
+
+gboolean xdk_window_get_keep_above(XdkWindow * self);
+
+void xdk_window_set_keep_below(XdkWindow * self, gboolean keep_below);
+
+gboolean xdk_window_get_keep_below(XdkWindow * self);
 
 G_END_DECLS
 

@@ -295,7 +295,7 @@ G_DEFINE_TYPE(XdkMirror, xdk_mirror, XDK_TYPE_WINDOW);
 
 static gboolean on_timeout_update_background(XdkWindow * window)
 {
-	glong width, height;
+	gint width, height;
 	xdk_window_get_size(window, & width, & height);
 	if(width >= 1280 || height >= 720) {
 		width = 10;

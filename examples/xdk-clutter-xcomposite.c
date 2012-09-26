@@ -196,16 +196,17 @@ gint main(gint argc, gchar * args[])
 	GList * node = windows;
 	for(; node; node = g_list_next(node)) {
 		//xdk_util_window_dump((Window) node->data);
-		Window w = (Window) node->data;
+		XdkWindow * w = node->data;
 		XWindowAttributes attrs;
 		XGetWindowAttributes(
 			xdk_display_get_peer(display),
-			w, & attrs);
+			xdk_window_get_peer(w),
+			& attrs);
 		if(IsUnmapped == attrs.map_state) {
 			continue;
 		}
 		
-		ClutterActor * actor = lookup_actor(w, TRUE);
+		ClutterActor * actor = lookup_actor(xdk_window_get_peer(w), TRUE);
 		clutter_actor_set_position(actor, attrs.x, attrs.y);
 		clutter_actor_set_size(actor, attrs.width, attrs.height);
 		clutter_actor_show(actor);

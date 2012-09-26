@@ -23,6 +23,10 @@ typedef struct _XdkWindowManagerPrivate XdkWindowManagerPrivate;
 struct _XdkWindowManagerClass
 {
 	GObjectClass base;
+	
+	void (* screen_added)(XdkWindowManager * self, XdkScreen * screen);
+
+	void (* screen_removed)(XdkWindowManager * self, XdkScreen * screen);
 };
 
 struct _XdkWindowManager
@@ -47,7 +51,7 @@ GQuark xdk_window_manager_error();
  * 
  * @screen: if NULL, default screen will be used
  */
-XdkWindowManager * xdk_window_manager_new(XdkScreen * screen, GError ** error);
+XdkWindowManager * xdk_window_manager_new();
 
 void xdk_window_manager_set_default_cursor(
 	XdkWindowManager * self,
@@ -56,6 +60,42 @@ void xdk_window_manager_set_default_cursor(
 Cursor xdk_window_manager_get_default_cursor(XdkWindowManager * self);
 
 void xdk_window_manager_unset_default_cursor(XdkWindowManager * self);
+
+/**
+ * @screen: if NULL, add default screen of defautl display
+ */
+gboolean xdk_window_manager_add_screen(
+	XdkWindowManager * self,
+	XdkScreen * screen,
+	GError ** error);
+
+/**
+ * @display: if NULL, add all screens of default display
+ */
+gboolean xdk_window_manager_add_all_screens(
+	XdkWindowManager * self,
+	XdkDisplay * display,
+	GError ** error);
+
+gboolean xdk_window_manager_has_screen(
+	XdkWindowManager * self,
+	XdkScreen * screen);
+
+void xdk_window_manager_remove_screen(
+	XdkWindowManager * self,
+	XdkScreen * screen);
+
+void xdk_window_manager_remove_all_screens(XdkWindowManager * self);
+
+GList * xdk_window_manager_list_screens(XdkWindowManager * self);
+
+gint xdk_window_manager_n_screens(XdkWindowManager * self);
+
+void xdk_window_manager_set_background_color(
+	XdkWindowManager * self,
+	gulong background_color);
+
+gulong xdk_window_manager_get_background_color(XdkWindowManager * self);
 
 G_END_DECLS
 

@@ -86,8 +86,6 @@ static gboolean xdk_display_dump_event(Display * display, XEvent * event);
 
 static int xdk_display_default_error_handler(Display * display, XErrorEvent * error);
 
-GQuark XDK_ATOM_WM_DELETE_WINDOW = 0;
-
 G_DEFINE_TYPE(XdkDisplay, xdk_display, G_TYPE_OBJECT);
 
 static guint signals[SIGNAL_MAX] = { 0, };
@@ -97,6 +95,77 @@ volatile XdkDisplay * xdk_default_display = NULL;
 static GError * xdk_last_error = NULL;
 
 static gboolean xdk_dump_error = FALSE;
+
+GQuark XDK_ATOM_WM_DELETE_WINDOW;
+GQuark XDK_ATOM_NET_SUPPORTED;
+GQuark XDK_ATOM_NET_CLIENT_LIST;
+GQuark XDK_ATOM_NET_NUMBER_OF_DESKTOPS;
+GQuark XDK_ATOM_NET_DESKTOP_GEOMETRY;
+GQuark XDK_ATOM_NET_DESKTOP_VIEWPORT;
+GQuark XDK_ATOM_NET_CURRENT_DESKTOP;
+GQuark XDK_ATOM_NET_DESKTOP_NAMES;
+GQuark XDK_ATOM_NET_ACTIVE_WINDOW;
+GQuark XDK_ATOM_NET_WORKAREA;
+GQuark XDK_ATOM_NET_SUPPORTING_WM_CHECK;
+GQuark XDK_ATOM_NET_VIRTUAL_ROOTS;
+GQuark XDK_ATOM_NET_DESKTOP_LAYOUT;
+GQuark XDK_ATOM_NET_SHOWING_DESKTOP;
+GQuark XDK_ATOM_NET_WINDOW;
+GQuark XDK_ATOM_NET_MOVERESIZE_WINDOW;
+GQuark XDK_ATOM_NET_WM_MOVERESIZE;
+GQuark XDK_ATOM_NET_RESTACK_WINDOW;
+GQuark XDK_ATOM_NET_REQUEST_FRAME_EXTENTS;
+GQuark XDK_ATOM_NET_WM_NAME;
+GQuark XDK_ATOM_NET_WM_VISIBLE_NAME;
+GQuark XDK_ATOM_NET_WM_ICON_NAME;
+GQuark XDK_ATOM_NET_WM_VISIBLE_ICON_NAME;
+GQuark XDK_ATOM_NET_WM_DESKTOP;
+GQuark XDK_ATOM_NET_WM_WINDOW_TYPE;
+GQuark XDK_ATOM_NET_WM_STATE;
+GQuark XDK_ATOM_NET_WM_ALLOWED_ACTIONS;
+GQuark XDK_ATOM_NET_WM_STRUT;
+GQuark XDK_ATOM_NET_WM_STRUT_PARTIAL;
+GQuark XDK_ATOM_NET_WM_ICON_GEOMETRY;
+GQuark XDK_ATOM_NET_WM_ICON;
+GQuark XDK_ATOM_NET_WM_PID;
+GQuark XDK_ATOM_NET_WM_HANDLED_ICONS;
+GQuark XDK_ATOM_NET_WM_USER_TIME;
+GQuark XDK_ATOM_NET_WM_USER_TIME_WINDOW;
+GQuark XDK_ATOM_NET_FRAME_EXTENTS;
+GQuark XDK_ATOM_NET_WM_OPAQUE_REGION;
+GQuark XDK_ATOM_NET_WM_PING;
+GQuark XDK_ATOM_NET_WM_SYNC_REQUEST;
+GQuark XDK_ATOM_NET_WM_FULLSCREEN_MONITORS;
+GQuark XDK_ATOM_NET_WM_FULLPLACEMENT;
+GQuark XDK_ATOM_NET_WM_CM_S0;
+GQuark XDK_ATOM_NET_WM_CM_S1;
+GQuark XDK_ATOM_NET_WM_CM_S2;
+GQuark XDK_ATOM_NET_WM_CM_S3;
+GQuark XDK_ATOM_WM_TRANSIENT_FOR;
+GQuark XDK_ATOM_WM_NAME;
+GQuark XDK_ATOM_WM_ICON_NAME;
+GQuark XDK_ATOM_WM_NORMAL_HINTS;
+GQuark XDK_ATOM_WM_HINTS;
+GQuark XDK_ATOM_WM_CLASS;
+GQuark XDK_ATOM_WM_TRANSIENT_FOR;
+GQuark XDK_ATOM_WM_PROTOCOLS;
+GQuark XDK_ATOM_WM_COLORMAP_WINDOWS;
+GQuark XDK_ATOM_WM_CLIENT_MACHINE;
+GQuark XDK_ATOM_WM_STATE;
+GQuark XDK_ATOM_WM_ICON_SIZE;
+GQuark XDK_ATOM_NET_WM_STATE_MODAL;
+GQuark XDK_ATOM_NET_WM_STATE_STICKY;
+GQuark XDK_ATOM_NET_WM_STATE_MAXIMIZED_VERT;
+GQuark XDK_ATOM_NET_WM_STATE_MAXIMIZED_HORZ;
+GQuark XDK_ATOM_NET_WM_STATE_SHADED;
+GQuark XDK_ATOM_NET_WM_STATE_SKIP_TASKBAR;
+GQuark XDK_ATOM_NET_WM_STATE_SKIP_PAGER;
+GQuark XDK_ATOM_NET_WM_STATE_HIDDEN;
+GQuark XDK_ATOM_NET_WM_STATE_FULLSCREEN;
+GQuark XDK_ATOM_NET_WM_STATE_ABOVE;
+GQuark XDK_ATOM_NET_WM_STATE_BELOW;
+GQuark XDK_ATOM_NET_WM_STATE_DEMANDS_ATTENTION;
+GQuark XDK_ATOM_NET_WM_STATE_FOCUSED;
 
 void xdk_display_class_init(XdkDisplayClass * clazz)
 {
@@ -139,7 +208,77 @@ void xdk_display_class_init(XdkDisplayClass * clazz)
 			G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 	
 	XDK_ATOM_WM_DELETE_WINDOW = g_quark_from_static_string("WM_DELETE_WINDOW");
-	
+	XDK_ATOM_WM_DELETE_WINDOW = g_quark_from_static_string("WM_DELETE_WINDOW");
+	XDK_ATOM_NET_SUPPORTED = g_quark_from_static_string("_NET_SUPPORTED");
+	XDK_ATOM_NET_CLIENT_LIST = g_quark_from_static_string("_NET_CLIENT_LIST");
+	XDK_ATOM_NET_NUMBER_OF_DESKTOPS = g_quark_from_static_string("_NET_NUMBER_OF_DESKTOPS");
+	XDK_ATOM_NET_DESKTOP_GEOMETRY = g_quark_from_static_string("_NET_DESKTOP_GEOMETRY");
+	XDK_ATOM_NET_DESKTOP_VIEWPORT = g_quark_from_static_string("_NET_DESKTOP_VIEWPORT");
+	XDK_ATOM_NET_CURRENT_DESKTOP = g_quark_from_static_string("_NET_CURRENT_DESKTOP");
+	XDK_ATOM_NET_DESKTOP_NAMES = g_quark_from_static_string("_NET_DESKTOP_NAMES");
+	XDK_ATOM_NET_ACTIVE_WINDOW = g_quark_from_static_string("_NET_ACTIVE_WINDOW");
+	XDK_ATOM_NET_WORKAREA = g_quark_from_static_string("_NET_WORKAREA");
+	XDK_ATOM_NET_SUPPORTING_WM_CHECK = g_quark_from_static_string("_NET_SUPPORTING_WM_CHECK");
+	XDK_ATOM_NET_VIRTUAL_ROOTS = g_quark_from_static_string("_NET_VIRTUAL_ROOTS");
+	XDK_ATOM_NET_DESKTOP_LAYOUT = g_quark_from_static_string("_NET_DESKTOP_LAYOUT");
+	XDK_ATOM_NET_SHOWING_DESKTOP = g_quark_from_static_string("_NET_SHOWING_DESKTOP");
+	XDK_ATOM_NET_WINDOW = g_quark_from_static_string("_NET_WINDOW");
+	XDK_ATOM_NET_MOVERESIZE_WINDOW = g_quark_from_static_string("_NET_MOVERESIZE_WINDOW");
+	XDK_ATOM_NET_WM_MOVERESIZE = g_quark_from_static_string("_NET_WM_MOVERESIZE");
+	XDK_ATOM_NET_RESTACK_WINDOW = g_quark_from_static_string("_NET_RESTACK_WINDOW");
+	XDK_ATOM_NET_REQUEST_FRAME_EXTENTS = g_quark_from_static_string("_NET_REQUEST_FRAME_EXTENTS");
+	XDK_ATOM_NET_WM_NAME = g_quark_from_static_string("_NET_WM_NAME");
+	XDK_ATOM_NET_WM_VISIBLE_NAME = g_quark_from_static_string("_NET_WM_VISIBLE_NAME");
+	XDK_ATOM_NET_WM_ICON_NAME = g_quark_from_static_string("_NET_WM_ICON_NAME");
+	XDK_ATOM_NET_WM_VISIBLE_ICON_NAME = g_quark_from_static_string("_NET_WM_VISIBLE_ICON_NAME");
+	XDK_ATOM_NET_WM_DESKTOP = g_quark_from_static_string("_NET_WM_DESKTOP");
+	XDK_ATOM_NET_WM_WINDOW_TYPE = g_quark_from_static_string("_NET_WM_WINDOW_TYPE");
+	XDK_ATOM_NET_WM_STATE = g_quark_from_static_string("_NET_WM_STATE");
+	XDK_ATOM_NET_WM_ALLOWED_ACTIONS = g_quark_from_static_string("_NET_WM_ALLOWED_ACTIONS");
+	XDK_ATOM_NET_WM_STRUT = g_quark_from_static_string("_NET_WM_STRUT");
+	XDK_ATOM_NET_WM_STRUT_PARTIAL = g_quark_from_static_string("_NET_WM_STRUT_PARTIAL");
+	XDK_ATOM_NET_WM_ICON_GEOMETRY = g_quark_from_static_string("_NET_WM_ICON_GEOMETRY");
+	XDK_ATOM_NET_WM_ICON = g_quark_from_static_string("_NET_WM_ICON");
+	XDK_ATOM_NET_WM_PID = g_quark_from_static_string("_NET_WM_PID");
+	XDK_ATOM_NET_WM_HANDLED_ICONS = g_quark_from_static_string("_NET_WM_HANDLED_ICONS");
+	XDK_ATOM_NET_WM_USER_TIME = g_quark_from_static_string("_NET_WM_USER_TIME");
+	XDK_ATOM_NET_WM_USER_TIME_WINDOW = g_quark_from_static_string("_NET_WM_USER_TIME_WINDOW");
+	XDK_ATOM_NET_FRAME_EXTENTS = g_quark_from_static_string("_NET_FRAME_EXTENTS");
+	XDK_ATOM_NET_WM_OPAQUE_REGION = g_quark_from_static_string("_NET_WM_OPAQUE_REGION");
+	XDK_ATOM_NET_WM_PING = g_quark_from_static_string("_NET_WM_PING");
+	XDK_ATOM_NET_WM_SYNC_REQUEST = g_quark_from_static_string("_NET_WM_SYNC_REQUEST");
+	XDK_ATOM_NET_WM_FULLSCREEN_MONITORS = g_quark_from_static_string("_NET_WM_FULLSCREEN_MONITORS");
+	XDK_ATOM_NET_WM_FULLPLACEMENT = g_quark_from_static_string("_NET_WM_FULLPLACEMENT");
+	XDK_ATOM_NET_WM_CM_S0 = g_quark_from_static_string("_NET_WM_CM_S0");
+	XDK_ATOM_NET_WM_CM_S1 = g_quark_from_static_string("_NET_WM_CM_S1");
+	XDK_ATOM_NET_WM_CM_S2 = g_quark_from_static_string("_NET_WM_CM_S2");
+	XDK_ATOM_NET_WM_CM_S3 = g_quark_from_static_string("_NET_WM_CM_S3");
+	XDK_ATOM_WM_TRANSIENT_FOR = g_quark_from_static_string("XDK_ATOM_WM_TRANSIENT_FOR");
+	XDK_ATOM_WM_NAME = g_quark_from_static_string("XDK_ATOM_WM_NAME");
+	XDK_ATOM_WM_ICON_NAME = g_quark_from_static_string("XDK_ATOM_WM_ICON_NAME");
+	XDK_ATOM_WM_NORMAL_HINTS = g_quark_from_static_string("XDK_ATOM_WM_NORMAL_HINTS");
+	XDK_ATOM_WM_HINTS = g_quark_from_static_string("XDK_ATOM_WM_HINTS");
+	XDK_ATOM_WM_CLASS = g_quark_from_static_string("XDK_ATOM_WM_CLASS");
+	XDK_ATOM_WM_TRANSIENT_FOR = g_quark_from_static_string("XDK_ATOM_WM_TRANSIENT_FOR");
+	XDK_ATOM_WM_PROTOCOLS = g_quark_from_static_string("XDK_ATOM_WM_PROTOCOLS");
+	XDK_ATOM_WM_COLORMAP_WINDOWS = g_quark_from_static_string("XDK_ATOM_WM_COLORMAP_WINDOWS");
+	XDK_ATOM_WM_CLIENT_MACHINE = g_quark_from_static_string("XDK_ATOM_WM_CLIENT_MACHINE");
+	XDK_ATOM_WM_STATE = g_quark_from_static_string("XDK_ATOM_WM_STATE");
+	XDK_ATOM_WM_ICON_SIZE = g_quark_from_static_string("XDK_ATOM_WM_ICON_SIZE");
+	XDK_ATOM_NET_WM_STATE_MODAL = g_quark_from_static_string("_NET_WM_STATE_MODAL");
+	XDK_ATOM_NET_WM_STATE_STICKY = g_quark_from_static_string("_NET_WM_STATE_STICKY");
+	XDK_ATOM_NET_WM_STATE_MAXIMIZED_VERT = g_quark_from_static_string("_NET_WM_STATE_MAXIMIZED_VERT");
+	XDK_ATOM_NET_WM_STATE_MAXIMIZED_HORZ = g_quark_from_static_string("_NET_WM_STATE_MAXIMIZED_HORZ");
+	XDK_ATOM_NET_WM_STATE_SHADED = g_quark_from_static_string("_NET_WM_STATE_SHADED");
+	XDK_ATOM_NET_WM_STATE_SKIP_TASKBAR = g_quark_from_static_string("_NET_WM_STATE_SKIP_TASKBAR");
+	XDK_ATOM_NET_WM_STATE_SKIP_PAGER = g_quark_from_static_string("_NET_WM_STATE_SKIP_PAGER");
+	XDK_ATOM_NET_WM_STATE_HIDDEN = g_quark_from_static_string("_NET_WM_STATE_HIDDEN");
+	XDK_ATOM_NET_WM_STATE_FULLSCREEN = g_quark_from_static_string("_NET_WM_STATE_FULLSCREEN");
+	XDK_ATOM_NET_WM_STATE_ABOVE = g_quark_from_static_string("_NET_WM_STATE_ABOVE");
+	XDK_ATOM_NET_WM_STATE_BELOW = g_quark_from_static_string("_NET_WM_STATE_BELOW");
+	XDK_ATOM_NET_WM_STATE_DEMANDS_ATTENTION = g_quark_from_static_string("_NET_WM_STATE_DEMANDS_ATTENTION");
+	XDK_ATOM_NET_WM_STATE_FOCUSED = g_quark_from_static_string("_NET_WM_STATE_FOCUSED");
+
 	if(g_getenv("XDK_DUMP_ERROR")) {
 		xdk_dump_error = TRUE;
 		XSetErrorHandler(xdk_display_default_error_handler);
@@ -297,6 +436,20 @@ gint xdk_display_get_n_screens(XdkDisplay * self)
 	return self->priv->n_screens;
 }
 
+GList * xdk_display_list_screens(XdkDisplay * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	GPtrArray * screens = self->priv->screens;
+	GList * new_screens = NULL;
+	gint i;
+	for(i = 0; i < screens->len; i ++) {
+		new_screens = g_list_prepend(new_screens, g_ptr_array_index(screens, i));
+	}
+	
+	return new_screens;
+}
+
 XdkScreen * xdk_display_get_default_screen(XdkDisplay * self)
 {
 	return xdk_display_get_screen(self, DefaultScreen(self->priv->peer));
@@ -359,7 +512,11 @@ gchar * xdk_display_atom_to_name(XdkDisplay * self, Atom atom)
 {
 	g_return_val_if_fail(self, NULL);
 	
-	return XGetAtomName(self->priv->peer, atom);;
+	gchar * orig = XGetAtomName(self->priv->peer, atom);
+	gchar * retval = g_strdup(orig);
+	XFree(orig);
+	
+	return retval;
 }
 
 Atom xdk_display_atom_get(XdkDisplay * self, GQuark name)

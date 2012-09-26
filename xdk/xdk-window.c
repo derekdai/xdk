@@ -45,6 +45,14 @@ struct _XdkWindowPrivate
 	gboolean destroyed : 1;
 	
 	gboolean override_redirect : 1;
+	
+	gboolean maximized : 1;
+	
+	gboolean keep_above : 1;
+	
+	gboolean keep_below : 1;
+	
+	gboolean fullscreen : 1;
 };
 
 enum {
@@ -82,6 +90,22 @@ static void xdk_window_handle_map_notify(XdkWindow * self, XEvent * event);
 static void xdk_window_handle_unmap_notify(XdkWindow * self, XEvent * event);
 
 static void xdk_window_handle_gravity_notify(XdkWindow * self, XEvent * event);
+
+static void xdk_window_destroy_internal(XdkWindow * self);
+
+static void xdk_window_sync_attributes(XdkWindow * self);
+
+static void xdk_window_sync_net_wm_state(XdkWindow * self);
+
+static gboolean contains_atom(
+	XdkWindow * self,
+	Atom * values, gint n_values,
+	GQuark value_key);
+	
+static void xdk_window_normalize_size(
+	XdkWindow * self,
+	gint * width,
+	gint * height);
 
 G_DEFINE_TYPE(XdkWindow, xdk_window, G_TYPE_OBJECT);
 
@@ -317,13 +341,21 @@ static void xdk_window_class_init(XdkWindowClass * clazz)
 		NULL,
 		G_TYPE_NONE, 1, X_TYPE_EVENT);
 	
+	signals[XDK_EVENT_PROPERTY] = g_signal_new(
+		"property",
+		type,
+		G_SIGNAL_RUN_FIRST,
+		0,
+		NULL, NULL,
+		NULL,
+		G_TYPE_NONE, 1, X_TYPE_EVENT);
+	
 	/*
 	case XDK_EVENT_KEYMAP:
 	case XDK_EVENT_GRAPHICS_EXPOSE:
 	case XDK_EVENT_NO_EXPOSE:
 	case XDK_EVENT_VISIBILITY:
 	case XDK_EVENT_CIRCULATE:
-	case XDK_EVENT_PROPERTY:
 	case XDK_EVENT_SELECTION_CLEAR:
 	case XDK_EVENT_SELECTION_REQUEST:
 	case XDK_EVENT_SELECTION:
@@ -385,7 +417,10 @@ static void xdk_window_constructed(GObject * object)
 
 static void xdk_window_dispose(GObject * object)
 {
-	XdkWindowPrivate * priv = XDK_WINDOW(object)->priv;
+	XdkWindow * self = XDK_WINDOW(object);
+	XdkWindowPrivate * priv = self->priv;
+	
+	xdk_window_destroy_internal(self);
 	
 	g_object_unref(priv->visual);
 	priv->visual = NULL;
@@ -393,10 +428,6 @@ static void xdk_window_dispose(GObject * object)
 
 static void xdk_window_finalize(GObject * object)
 {
-	XdkWindow * self = XDK_WINDOW(object);
-	
-	xdk_window_destroy(self);
-	
 	G_OBJECT_CLASS(xdk_window_parent_class)->finalize(object);
 }
 
@@ -442,7 +473,7 @@ static void xdk_window_sync_attributes(XdkWindow * self)
 	priv->gravity = attributes.win_gravity;
 	priv->mapped = (IsUnmapped != attributes.map_state);
 	priv->event_mask = attributes.your_event_mask;
-	priv->override_redirect = attributes.override_redirect;
+	priv->override_redirect = !! attributes.override_redirect;
 }
 
 void xdk_window_set_foreign_peer(XdkWindow * self, Window peer)
@@ -450,6 +481,7 @@ void xdk_window_set_foreign_peer(XdkWindow * self, Window peer)
 	_xdk_window_set_peer(self, peer, FALSE);
 	
 	xdk_window_sync_attributes(self);
+	xdk_window_sync_net_wm_state(self);
 }
 
 void xdk_window_take_peer(XdkWindow * self, Window peer)
@@ -457,6 +489,7 @@ void xdk_window_take_peer(XdkWindow * self, Window peer)
 	_xdk_window_set_peer(self, peer, TRUE);
 	
 	xdk_window_sync_attributes(self);
+	xdk_window_sync_net_wm_state(self);
 }
 
 Window xdk_window_get_peer(XdkWindow * self)
@@ -661,29 +694,9 @@ void xdk_window_get_size(XdkWindow * self, gint * width, gint * height)
 void xdk_window_set_size(XdkWindow * self, gint width, gint height)
 {
 	g_return_if_fail(self);
-	g_return_if_fail(width >= -1 && width != 0);
-	g_return_if_fail(height >= -1 && height != 0);
 	
 	XdkWindowPrivate * priv = self->priv;
-	if(-1 == width) {
-		width = priv->parent
-			? xdk_window_get_width(priv->parent)
-			: xdk_screen_get_width(priv->screen);
-	}
-	if(-1 == height) {
-		height = priv->parent
-			? xdk_window_get_height(priv->parent)
-			: xdk_screen_get_height(priv->screen);
-	}
-
-	if(xdk_window_is_realized(self)) {
-		XResizeWindow(
-			xdk_display_get_peer(priv->display), priv->peer,
-			width, height);
-	}
-	
-	priv->width = width;
-	priv->height = height;
+	xdk_window_set_geometry(self, priv->x, priv->y, width, height);
 }
 
 gint xdk_window_get_width(XdkWindow * self)
@@ -697,7 +710,8 @@ void xdk_window_set_width(XdkWindow * self, gint width)
 {
 	g_return_if_fail(self);
 	
-	xdk_window_set_size(self, width, self->priv->height);
+	XdkWindowPrivate * priv = self->priv;
+	xdk_window_set_geometry(self, priv->x, priv->y, width, priv->height);
 }
 
 gint xdk_window_get_height(XdkWindow * self)
@@ -711,7 +725,78 @@ void xdk_window_set_height(XdkWindow * self, gint height)
 {
 	g_return_if_fail(self);
 	
-	xdk_window_set_size(self, self->priv->width, height);
+	XdkWindowPrivate * priv = self->priv;
+	xdk_window_set_geometry(self, priv->x, priv->y, priv->width, height);
+}
+
+void xdk_window_get_geometry(
+	XdkWindow * self,
+	gint * x, gint * y,
+	gint * width, gint * height)
+{
+	g_return_if_fail(self);
+	
+	XdkWindowPrivate * priv = self->priv;
+	if(x) {
+		* x = priv->x;
+	}
+	
+	if(y) {
+		* y = priv->y;
+	}
+	
+	if(width) {
+		* width = priv->width;
+	}
+	
+	if(height) {
+		* height = priv->height;
+	}
+}
+
+static void xdk_window_normalize_size(
+	XdkWindow * self,
+	gint * width,
+	gint * height)
+{
+	XdkWindowPrivate * priv = self->priv;
+	if(width && -1 == * width) {
+		* width = priv->parent
+			? xdk_window_get_width(priv->parent)
+			: xdk_screen_get_width(priv->screen);
+	}
+	
+	if(height && -1 == * height) {
+		* height = priv->parent
+			? xdk_window_get_height(priv->parent)
+			: xdk_screen_get_height(priv->screen);
+	}
+}
+
+void xdk_window_set_geometry(
+	XdkWindow * self,
+	gint x, gint y,
+	gint width, gint height)
+{
+	g_return_if_fail(self);
+	g_return_if_fail(width >= -1 && width != 0);
+	g_return_if_fail(height >= -1 && height != 0);
+	
+	XdkWindowPrivate * priv = self->priv;
+	xdk_window_normalize_size(self, & width, & height);
+	
+	if(xdk_window_is_realized(self)) {
+		XMoveResizeWindow(
+			xdk_display_get_peer(priv->display),
+			priv->peer,
+			x, y,
+			width, height);
+	}
+	
+	priv->x = x;
+	priv->y = y;
+	priv->width = width;
+	priv->height = height;
 }
 
 void xdk_window_map(XdkWindow * self)
@@ -733,7 +818,7 @@ gboolean xdk_window_is_mapped(XdkWindow * self)
 	g_return_val_if_fail(self, FALSE);
 	
 	XdkWindowPrivate * priv = self->priv;
-	return ! priv->destroyed && None != priv->peer && priv->mapped;
+	return ! priv->destroyed && priv->mapped;
 }
 
 void xdk_window_unmap(XdkWindow * self)
@@ -753,8 +838,15 @@ void xdk_window_show(XdkWindow * self)
 {
 	g_return_if_fail(self);
 	
+	XdkWindowPrivate * priv = self->priv;
+	if(priv->visible) {
+		return;
+	}
+	
 	xdk_window_realize(self);
 	xdk_window_map(self);
+	
+	priv->visible = TRUE;
 }
 
 void xdk_window_show_all(XdkWindow * self)
@@ -768,7 +860,33 @@ void xdk_window_show_all(XdkWindow * self)
 
 void xdk_window_hide(XdkWindow * self)
 {
-	xdk_window_unmap(self);
+	g_return_if_fail(self);
+	
+	XdkWindowPrivate * priv = self->priv;
+	if(! priv->visible) {
+		return;
+	}
+	
+	//xdk_window_unmap(self);
+	
+	priv->visible = FALSE;
+}
+
+void xdk_window_set_visible(XdkWindow * self, gboolean visible)
+{
+	if(visible) {
+		xdk_window_show(self);
+	}
+	else {
+		xdk_window_hide(self);
+	}
+}
+
+gboolean xdk_window_get_visible(XdkWindow * self)
+{
+	g_return_val_if_fail(self, FALSE);
+	
+	return self->priv->visible && xdk_window_is_mapped(self);
 }
 
 gboolean xdk_window_is_destroyed(XdkWindow * self)
@@ -778,10 +896,8 @@ gboolean xdk_window_is_destroyed(XdkWindow * self)
 	return self->priv->destroyed;
 }
 
-void xdk_window_destroy(XdkWindow * self)
+static void xdk_window_destroy_internal(XdkWindow * self)
 {
-	g_return_if_fail(self);
-	
 	XdkWindowPrivate * priv = self->priv;
 
 	g_list_foreach(priv->children, (GFunc) xdk_window_destroy, NULL);
@@ -800,17 +916,34 @@ void xdk_window_destroy(XdkWindow * self)
 	self->priv->destroyed = TRUE;
 }
 
-Atom * xdk_window_list_properties(XdkWindow * self, int * n_props)
+void xdk_window_destroy(XdkWindow * self)
+{
+	g_return_if_fail(self);
+	
+	if(xdk_window_is_destroyed(self)) {
+		return;
+	}
+	
+	xdk_window_destroy_internal(self);
+
+	g_object_unref(self);
+}
+
+Atom * xdk_window_list_properties(XdkWindow * self, gint * n_props)
 {
 	g_return_val_if_fail(self, NULL);
 	g_return_val_if_fail(n_props, NULL);
 	
 	xdk_window_realize(self);
 	
-	return XListProperties(
+	Atom * orig = XListProperties(
 		xdk_display_get_peer(self->priv->display),
 		self->priv->peer,
 		n_props);
+	Atom * retval = g_memdup(orig, sizeof(Atom) * (* n_props));
+	XFree(orig);
+	
+	return retval;
 }
 
 static void xdk_window_dispatch_client_message(XdkWindow * self, XEvent * event)
@@ -858,10 +991,8 @@ void xdk_window_dispatch_event(XdkWindow * self, XEvent * event)
 	case XDK_EVENT_COLORMAP:
 	case XDK_EVENT_MAPPING:
 	case XDK_EVENT_GENERIC:
-		g_signal_emit(self, signals[event->type], 0, event);
-		break;
 	case XDK_EVENT_DESTROY:
-		g_signal_emit(self, signals[XDK_EVENT_DESTROY], 0, event);
+		g_signal_emit(self, signals[event->type], 0, event);
 		break;
 	case XDK_EVENT_CLIENT_MESSAGE:
 		xdk_window_dispatch_client_message(self, event);
@@ -1200,40 +1331,41 @@ void xdk_window_select_input(XdkWindow * self, XdkEventMask event_mask)
 		event_mask);
 }
 
-gboolean xdk_window_has_override_redirect(XdkWindow * self)
-{
-	g_return_val_if_fail(self, FALSE);
-	
-	return self->priv->override_redirect;
-}
-
 GList * xdk_window_query_tree(XdkWindow * self)
 {
 	g_return_val_if_fail(self, NULL);
 	XdkWindowPrivate * priv = self->priv;
 	g_return_val_if_fail(priv->peer, NULL);
 	
-	GList * tree = NULL;
-	Window root, parent, * children;
-	guint n_children;
+	GList * windows = NULL;
+	Window xroot, xparent, * xwindows;
+	guint n_xwindows;
 	if(! XQueryTree(
 			xdk_display_get_peer(priv->display),
 			priv->peer,
-			& root,
-			& parent,
-			& children, & n_children)) {
+			& xroot,
+			& xparent,
+			& xwindows, & n_xwindows)) {
 		goto end;
 	}
 	
 	guint i;
-	for(i = 0; i < n_children; i ++) {
-		tree = g_list_prepend(tree, GUINT_TO_POINTER(children[i]));
+	for(i = 0; i < n_xwindows; i ++) {
+		XdkWindow * window = xdk_display_lookup_window(
+			priv->display,
+			xwindows[i]);
+		if(! window) {
+			window = xdk_window_new();
+			xdk_window_set_parent(window, self);
+			xdk_window_set_foreign_peer(window, xwindows[i]);
+		}
+		
+		windows = g_list_prepend(windows, window);
 	}
-	tree = g_list_reverse(tree);
-	XFree(children);
-	
+	XFree(xwindows);
+
 end:
-	return tree;
+	return g_list_reverse(windows);
 }
 
 void xdk_window_set_visual(XdkWindow * self, XdkVisual * visual)
@@ -1307,4 +1439,130 @@ void xdk_window_configure(
 		xdk_display_get_peer(priv->display),
 		priv->peer,
 		value_mask, values);
+}
+
+gboolean xdk_window_get_override_redirect(XdkWindow * self)
+{
+	g_return_val_if_fail(self, FALSE);
+	
+	return self->priv->override_redirect;
+}
+
+static gboolean contains_atom(
+	XdkWindow * self,
+	Atom * atoms, gint n_atoms,
+	GQuark atom_name)
+{
+	Atom atom = xdk_display_atom_get(self->priv->display, atom_name);
+	for(-- n_atoms; n_atoms >= 0; n_atoms --) {
+		if(atoms[n_atoms] == atom) {
+			return TRUE;
+		}
+	}
+	
+	return FALSE;
+}
+
+static void xdk_window_sync_net_wm_state(XdkWindow * self)
+{
+	g_return_if_fail(self);
+
+	XdkWindowPrivate * priv = self->priv;
+	Atom prop_type;
+	gint prop_format;
+	glong n_values, n_bytes_remain;
+	Atom * values;
+	guint result = XGetWindowProperty(
+		xdk_display_get_peer(priv->display),
+		priv->peer,
+		xdk_display_atom_get(priv->display, XDK_ATOM_NET_WM_STATE),
+		0, G_MAXINT,
+		FALSE,
+		AnyPropertyType,
+		& prop_type, & prop_format,
+		(gulong *) & n_values,
+		(gulong *) & n_bytes_remain,
+		(guchar **) & values);
+	if(Success != result) {
+		g_warning("Failed to get window property _NET_WM_STATE");
+		return;
+	}
+	
+	priv->maximized = contains_atom(self, values, n_values, XDK_ATOM_NET_WM_STATE_MAXIMIZED_VERT) ||
+		contains_atom(self, values, n_values, XDK_ATOM_NET_WM_STATE_MAXIMIZED_HORZ);
+	priv->visible = (TRUE != contains_atom(self, values, n_values, XDK_ATOM_NET_WM_STATE_HIDDEN));
+	priv->fullscreen = contains_atom(self, values, n_values, XDK_ATOM_NET_WM_STATE_FULLSCREEN);
+	priv->keep_above = contains_atom(self, values, n_values, XDK_ATOM_NET_WM_STATE_ABOVE);
+	priv->keep_below = contains_atom(self, values, n_values, XDK_ATOM_NET_WM_STATE_BELOW);
+		
+	XFree(values);
+}
+
+void xdk_window_maximize(XdkWindow * self)
+{
+	g_return_if_fail(self);
+	
+	XdkWindowPrivate * priv = self->priv;
+	if(priv->maximized) {
+		return;
+	}
+	
+	priv->maximized = TRUE;
+}
+
+void xdk_window_unmaximize(XdkWindow * self)
+{
+	g_return_if_fail(self);
+
+	XdkWindowPrivate * priv = self->priv;
+	if(! priv->maximized) {
+		return;
+	}
+	
+	priv->maximized = FALSE;
+}
+
+gboolean xdk_window_is_maximized(XdkWindow * self)
+{
+	g_return_val_if_fail(self, FALSE);
+	
+	return self->priv->maximized;
+}
+
+void xdk_window_set_keep_above(XdkWindow * self, gboolean keep_above)
+{
+	g_return_if_fail(self);
+	
+	XdkWindowPrivate * priv = self->priv;
+	if(priv->keep_above == keep_above) {
+		return;
+	}
+	
+	priv->keep_above = keep_above;
+}
+
+gboolean xdk_window_get_keep_above(XdkWindow * self)
+{
+	g_return_val_if_fail(self, FALSE);
+	
+	return self->priv->keep_above;
+}
+
+void xdk_window_set_keep_below(XdkWindow * self, gboolean keep_below)
+{
+	g_return_if_fail(self);
+	
+	XdkWindowPrivate * priv = self->priv;
+	if(priv->keep_below == keep_below) {
+		return;
+	}
+	
+	priv->keep_below = keep_below;
+}
+
+gboolean xdk_window_get_keep_below(XdkWindow * self)
+{
+	g_return_val_if_fail(self, FALSE);
+	
+	return self->priv->keep_below;
 }

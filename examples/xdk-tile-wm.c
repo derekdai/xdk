@@ -43,7 +43,7 @@ void on_configure_request(XdkWindow * root, XEvent * event, XdkDisplay * display
 {
 	XConfigureRequestEvent * e = (XConfigureRequestEvent *) event;
 	XdkWindow * win = get_foreign_window(e->window, TRUE);
-	if(xdk_window_has_override_redirect(win)) {
+	if(xdk_window_get_override_redirect(win)) {
 		return;
 	}
 	
@@ -54,7 +54,7 @@ void on_map_request(XdkWindow * root, XEvent * event, XdkDisplay * display)
 {
 	XMapRequestEvent * e = (XMapRequestEvent *) event;
 	XdkWindow * win = get_foreign_window(e->window, TRUE);
-	if(xdk_window_has_override_redirect(win)) {
+	if(xdk_window_get_override_redirect(win)) {
 		return;
 	}
 	if(g_list_find(windows, win)) {
@@ -88,7 +88,7 @@ void on_unmap_notify(XdkWindow * root, XEvent * event, XdkDisplay * display)
 	if(! win) {
 		return;
 	}
-	if(xdk_window_has_override_redirect(win)) {
+	if(xdk_window_get_override_redirect(win)) {
 		return;
 	}
 	

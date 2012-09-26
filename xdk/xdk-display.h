@@ -43,6 +43,120 @@ struct _XdkDisplay
  */
 extern GQuark XDK_ATOM_WM_DELETE_WINDOW;
 
+/**
+ * root window properties
+ * @see http://standards.freedesktop.org/wm-spec/wm-spec-1.5.html#id2533796
+ */
+extern GQuark XDK_ATOM_NET_SUPPORTED;
+extern GQuark XDK_ATOM_NET_CLIENT_LIST;
+extern GQuark XDK_ATOM_NET_NUMBER_OF_DESKTOPS;
+extern GQuark XDK_ATOM_NET_DESKTOP_GEOMETRY;
+extern GQuark XDK_ATOM_NET_DESKTOP_VIEWPORT;
+extern GQuark XDK_ATOM_NET_CURRENT_DESKTOP;
+extern GQuark XDK_ATOM_NET_DESKTOP_NAMES;
+extern GQuark XDK_ATOM_NET_ACTIVE_WINDOW;
+extern GQuark XDK_ATOM_NET_WORKAREA;
+extern GQuark XDK_ATOM_NET_SUPPORTING_WM_CHECK;
+extern GQuark XDK_ATOM_NET_VIRTUAL_ROOTS;
+extern GQuark XDK_ATOM_NET_DESKTOP_LAYOUT;
+extern GQuark XDK_ATOM_NET_SHOWING_DESKTOP;
+
+/**
+ * other root window messages
+ * @see http://standards.freedesktop.org/wm-spec/wm-spec-1.5.html#id2577565
+ */
+extern GQuark XDK_ATOM_NET_WINDOW;
+extern GQuark XDK_ATOM_NET_MOVERESIZE_WINDOW;
+extern GQuark XDK_ATOM_NET_WM_MOVERESIZE;
+extern GQuark XDK_ATOM_NET_RESTACK_WINDOW;
+extern GQuark XDK_ATOM_NET_REQUEST_FRAME_EXTENTS;
+
+/**
+ * application window properties
+ * @see http://standards.freedesktop.org/wm-spec/wm-spec-1.5.html#id2577833
+ */
+extern GQuark XDK_ATOM_NET_WM_NAME;
+extern GQuark XDK_ATOM_NET_WM_VISIBLE_NAME;
+extern GQuark XDK_ATOM_NET_WM_ICON_NAME;
+extern GQuark XDK_ATOM_NET_WM_VISIBLE_ICON_NAME;
+extern GQuark XDK_ATOM_NET_WM_DESKTOP;
+extern GQuark XDK_ATOM_NET_WM_WINDOW_TYPE;
+extern GQuark XDK_ATOM_NET_WM_STATE;
+extern GQuark XDK_ATOM_NET_WM_ALLOWED_ACTIONS;
+extern GQuark XDK_ATOM_NET_WM_STRUT;
+extern GQuark XDK_ATOM_NET_WM_STRUT_PARTIAL;
+extern GQuark XDK_ATOM_NET_WM_ICON_GEOMETRY;
+extern GQuark XDK_ATOM_NET_WM_ICON;
+extern GQuark XDK_ATOM_NET_WM_PID;
+extern GQuark XDK_ATOM_NET_WM_HANDLED_ICONS;
+extern GQuark XDK_ATOM_NET_WM_USER_TIME;
+extern GQuark XDK_ATOM_NET_WM_USER_TIME_WINDOW;
+extern GQuark XDK_ATOM_NET_FRAME_EXTENTS;
+extern GQuark XDK_ATOM_NET_WM_OPAQUE_REGION;
+
+/**
+ * window manager protocols
+ * @see http://standards.freedesktop.org/wm-spec/wm-spec-1.5.html#id2578884
+ */
+extern GQuark XDK_ATOM_NET_WM_PING;
+extern GQuark XDK_ATOM_NET_WM_SYNC_REQUEST;
+extern GQuark XDK_ATOM_NET_WM_FULLSCREEN_MONITORS;
+
+/**
+ * 
+ * @see http://standards.freedesktop.org/wm-spec/wm-spec-1.5.html#id2578152
+ */
+extern GQuark XDK_ATOM_NET_WM_STATE_MODAL;
+extern GQuark XDK_ATOM_NET_WM_STATE_STICKY;
+extern GQuark XDK_ATOM_NET_WM_STATE_MAXIMIZED_VERT;
+extern GQuark XDK_ATOM_NET_WM_STATE_MAXIMIZED_HORZ;
+extern GQuark XDK_ATOM_NET_WM_STATE_SHADED;
+extern GQuark XDK_ATOM_NET_WM_STATE_SKIP_TASKBAR;
+extern GQuark XDK_ATOM_NET_WM_STATE_SKIP_PAGER;
+extern GQuark XDK_ATOM_NET_WM_STATE_HIDDEN;
+extern GQuark XDK_ATOM_NET_WM_STATE_FULLSCREEN;
+extern GQuark XDK_ATOM_NET_WM_STATE_ABOVE;
+extern GQuark XDK_ATOM_NET_WM_STATE_BELOW;
+extern GQuark XDK_ATOM_NET_WM_STATE_DEMANDS_ATTENTION;
+extern GQuark XDK_ATOM_NET_WM_STATE_FOCUSED;
+
+/**
+ * other properties
+ * @see http://standards.freedesktop.org/wm-spec/wm-spec-1.5.html#id2579111
+ */
+extern GQuark XDK_ATOM_NET_WM_FULLPLACEMENT;
+
+/**
+ * compositing manager
+ * @see http://standards.freedesktop.org/wm-spec/wm-spec-1.5.html#id2579173
+ */
+extern GQuark XDK_ATOM_NET_WM_CM_S0;
+extern GQuark XDK_ATOM_NET_WM_CM_S1;
+extern GQuark XDK_ATOM_NET_WM_CM_S2;
+extern GQuark XDK_ATOM_NET_WM_CM_S3;
+extern GQuark XDK_ATOM_WM_TRANSIENT_FOR;
+
+/**
+ * ICCCM client properties
+ * @see http://tronche.com/gui/x/icccm/sec-4.html#s-4.1.2
+ */
+extern GQuark XDK_ATOM_WM_NAME;
+extern GQuark XDK_ATOM_WM_ICON_NAME;
+extern GQuark XDK_ATOM_WM_NORMAL_HINTS;
+extern GQuark XDK_ATOM_WM_HINTS;
+extern GQuark XDK_ATOM_WM_CLASS;
+extern GQuark XDK_ATOM_WM_TRANSIENT_FOR;
+extern GQuark XDK_ATOM_WM_PROTOCOLS;
+extern GQuark XDK_ATOM_WM_COLORMAP_WINDOWS;
+extern GQuark XDK_ATOM_WM_CLIENT_MACHINE;
+
+/**
+ * ICCCM window manager properties
+ * @see http://tronche.com/gui/x/icccm/sec-4.html#s-4.1.3
+ */
+extern GQuark XDK_ATOM_WM_STATE;
+extern GQuark XDK_ATOM_WM_ICON_SIZE;
+
 GType xdk_display_get_type();
 
 XdkDisplay * xdk_display_get_default();

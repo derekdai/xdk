@@ -6,6 +6,12 @@
 
 G_BEGIN_DECLS
 
+#define XDK_TYPE_POINT		(xdk_point_get_type())
+
+#define XDK_TYPE_SIZE		(xdk_size_get_type())
+
+#define XDK_TYPE_GEOMETRY	(xdk_geometry_get_type())
+
 #define X_TYPE_EVENT		(x_event_get_type())
 
 #define XDK_ERROR			(xdk_error_quark())
@@ -22,6 +28,12 @@ typedef enum _XdkEventType XdkEventType;
 
 typedef enum _XdkErrorType XdkErrorType;
 
+typedef struct _XdkPoint XdkPoint;
+
+typedef struct _XdkSize XdkSize;
+
+typedef struct _XdkGeometry XdkGeometry;
+
 enum _XdkGravity
 {
 	XDK_GRAVITY_UNMAP		= UnmapGravity,
@@ -36,6 +48,31 @@ enum _XdkGravity
 	XDK_GRAVITY_SOUTH_EAST	= SouthEastGravity,
 	// this one only for bit_gravity
 	XDK_GRAVITY_FORGET		= ForgetGravity,
+};
+
+struct _XdkPoint
+{
+	gint x;
+	
+	gint y;
+};
+
+struct _XdkSize
+{
+	gint width;
+	
+	gint height;
+};
+
+struct _XdkGeometry
+{
+	gint x;
+	
+	gint y;
+	
+	gint width;
+	
+	gint height;
 };
 
 /**
@@ -187,6 +224,36 @@ GQuark xdk_error_quark();
 const char * xdk_error_type_to_string(XdkErrorType type);
 
 GError * xdk_error_new(XErrorEvent * error);
+
+XdkPoint * xdk_point_new();
+
+XdkPoint * xdk_point_new_full(gint x, gint y);
+
+XdkPoint * xdk_point_copy(XdkPoint * self);
+
+void xdk_point_free(XdkPoint * self);
+
+GType xdk_point_get_type();
+
+XdkSize * xdk_size_new();
+
+XdkSize * xdk_size_new_full(gint width, gint height);
+
+XdkSize * xdk_size_copy(XdkSize * self);
+
+void xdk_size_free(XdkSize * self);
+
+GType xdk_size_get_type();
+
+XdkGeometry * xdk_geometry_new();
+
+XdkGeometry * xdk_geometry_new_full(gint x, gint y, gint width, gint height);
+
+XdkGeometry * xdk_geometry_copy(XdkGeometry * self);
+
+void xdk_geometry_free(XdkGeometry * self);
+
+GType xdk_geometry_get_type();
 
 G_END_DECLS
 

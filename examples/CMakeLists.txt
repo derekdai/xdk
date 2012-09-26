@@ -61,6 +61,9 @@ target_link_libraries( xdk-rgba-visual xdk ${CLUTTER_LIBRARIES} )
 add_executable( xdk-wm xdk-wm )
 target_link_libraries( xdk-wm xdk ${GLIB_LIBRARIES} )
 
+add_executable( xdk-cm xdk-cm )
+target_link_libraries( xdk-cm xdk ${CLUTTER_LIBRARIES} )
+
 install(
 	TARGETS
 		xdk-wm

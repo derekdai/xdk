@@ -236,3 +236,135 @@ GError * xdk_error_new(XErrorEvent * error)
 	
 	return gerror;
 }
+
+XdkPoint * xdk_point_copy(XdkPoint * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return g_slice_dup(XdkPoint, self);
+}
+
+void xdk_point_free(XdkPoint * self)
+{
+	g_return_if_fail(self);
+	
+	g_slice_free(XdkPoint, self);
+}
+
+XdkSize * xdk_size_copy(XdkSize * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return g_slice_dup(XdkSize, self);
+}
+
+void xdk_size_free(XdkSize * self)
+{
+	g_return_if_fail(self);
+	
+	g_slice_free(XdkSize, self);
+}
+
+XdkGeometry * xdk_geometry_copy(XdkGeometry * self)
+{
+	g_return_val_if_fail(self, NULL);
+	
+	return g_slice_dup(XdkGeometry, self);
+}
+
+void xdk_geometry_free(XdkGeometry * self)
+{
+	g_return_if_fail(self);
+	
+	g_slice_free(XdkGeometry, self);
+}
+
+GType xdk_point_get_type()
+{
+	static volatile GType type_id = 0;
+	if(g_once_init_enter(& type_id)) {
+		GType id = g_boxed_type_register_static(
+			"XdkPoint",
+			(GBoxedCopyFunc) xdk_point_copy,
+			(GBoxedFreeFunc) xdk_point_free);
+		g_once_init_leave(& type_id, id);
+	}
+	
+	return type_id;
+}
+
+GType xdk_size_get_type()
+{
+	static volatile GType type_id = 0;
+	if(g_once_init_enter(& type_id)) {
+		GType id = g_boxed_type_register_static(
+			"XdkSize",
+			(GBoxedCopyFunc) xdk_size_copy,
+			(GBoxedFreeFunc) xdk_size_free);
+		g_once_init_leave(& type_id, id);
+	}
+	
+	return type_id;
+}
+
+GType xdk_geometry_get_type()
+{
+	static volatile GType type_id = 0;
+	if(g_once_init_enter(& type_id)) {
+		GType id = g_boxed_type_register_static(
+			"XdkGeometry",
+			(GBoxedCopyFunc) xdk_geometry_copy,
+			(GBoxedFreeFunc) xdk_geometry_free);
+		g_once_init_leave(& type_id, id);
+	}
+	
+	return type_id;
+}
+
+XdkPoint * xdk_point_new_full(gint x, gint y)
+{
+	XdkPoint * self = g_slice_new(XdkPoint);
+	self->x = x;
+	self->y = y;
+	
+	return self;
+}
+
+XdkPoint * xdk_point_new()
+{
+	return xdk_point_new_full(0, 0);
+}
+
+XdkSize * xdk_size_new_full(gint width, gint height)
+{
+	g_return_val_if_fail(width >= 0 && height >= 0, NULL);
+	
+	XdkSize * self = g_slice_new(XdkSize);
+	self->width = width;
+	self->height = height;
+	
+	return self;
+}
+
+XdkSize * xdk_size_new()
+{
+	return xdk_size_new_full(0, 0);
+}
+
+XdkGeometry * xdk_geometry_new_full(gint x, gint y, gint width, gint height)
+{
+	g_return_val_if_fail(width >= 0 && height >= 0, NULL);
+	
+	XdkGeometry * self = g_slice_new(XdkGeometry);
+	self->x = x;
+	self->y = y;
+	self->width = width;
+	self->height = height;
+	
+	return self;
+}
+
+XdkGeometry * xdk_geometry_new()
+{
+	return xdk_geometry_new_full(0, 0, 0, 0);
+}
